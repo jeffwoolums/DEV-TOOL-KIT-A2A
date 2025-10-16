@@ -1860,10 +1860,53 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'healthy',
     supabase: process.env.SUPABASE_URL ? 'connected' : 'not configured',
     claude: process.env.CLAUDE_API_KEY ? 'ready' : 'not configured'
+  });
+});
+
+// Diagnostic endpoint to check API key configuration
+app.get('/api/diagnostics', (req, res) => {
+  const claudeKey = process.env.CLAUDE_API_KEY;
+
+  res.json({
+    environment: {
+      nodeVersion: process.version,
+      platform: process.platform,
+      port: PORT
+    },
+    apiKeys: {
+      claude: {
+        configured: !!claudeKey,
+        keyLength: claudeKey ? claudeKey.length : 0,
+        keyPrefix: claudeKey ? claudeKey.substring(0, 7) + '...' : 'NOT SET',
+        keyFormat: claudeKey ? (claudeKey.startsWith('sk-ant-') ? 'valid format' : 'INVALID FORMAT') : 'missing'
+      },
+      supabase: {
+        url: !!process.env.SUPABASE_URL,
+        key: !!process.env.SUPABASE_ANON_KEY
+      },
+      externalAPIs: {
+        openweather: !!process.env.OPENWEATHER_API_KEY,
+        mapbox: !!process.env.MAPBOX_API_KEY,
+        googlemaps: !!process.env.GOOGLE_MAPS_API_KEY,
+        newsapi: !!process.env.NEWS_API_KEY,
+        alphavantage: !!process.env.ALPHAVANTAGE_API_KEY,
+        sendgrid: !!process.env.SENDGRID_API_KEY,
+        twilio: !!process.env.TWILIO_API_KEY,
+        huggingface: !!process.env.HUGGINGFACE_API_KEY,
+        stripe: !!process.env.STRIPE_API_KEY,
+        airtable: !!process.env.AIRTABLE_API_KEY,
+        deepl: !!process.env.DEEPL_API_KEY,
+        unsplash: !!process.env.UNSPLASH_API_KEY
+      }
+    },
+    toolRegistry: {
+      totalTools: toolRegistry.getAllTools().length,
+      configuredTools: toolRegistry.getToolInfo().filter(t => t.configured).length
+    }
   });
 });
 
