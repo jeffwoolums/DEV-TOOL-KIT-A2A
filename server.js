@@ -2066,6 +2066,34 @@ app.get('/api/diagnostics', (req, res) => {
   });
 });
 
+// API Configuration endpoint - Set API keys at runtime
+app.post('/api/config/set-key', (req, res) => {
+  const { key, value } = req.body;
+
+  if (!key || !value) {
+    return res.json({ success: false, error: 'Missing key or value' });
+  }
+
+  try {
+    // Set the environment variable
+    process.env[key] = value;
+
+    // If it's a tool registry API key, update the tool
+    const tool = toolRegistry.getAllTools().find(t => t.envKey === key);
+    if (tool) {
+      tool.connector.setApiKey(value);
+      console.log(`[API Config] Updated ${tool.name} with new API key`);
+    }
+
+    res.json({
+      success: true,
+      message: `API key for ${key} has been set`
+    });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log('Server running on port ' + PORT);
   console.log('Environment check:');

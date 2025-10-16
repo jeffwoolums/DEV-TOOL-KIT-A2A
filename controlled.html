@@ -104,10 +104,10 @@
     }
 
     .terminal-line {
-      margin-bottom: 4px;
-      display: flex;
-      gap: 10px;
+      margin-bottom: 12px;
       animation: fadeIn 0.3s ease-in;
+      border-left: 3px solid transparent;
+      padding-left: 10px;
     }
 
     @keyframes fadeIn {
@@ -115,40 +115,68 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    .terminal-header-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
     .terminal-timestamp {
       color: #666;
       font-size: 11px;
-      min-width: 65px;
     }
 
     .terminal-agent {
       color: #569cd6;
       font-weight: bold;
-      min-width: 140px;
+      font-size: 12px;
     }
 
     .terminal-message {
       color: #d4d4d4;
-      flex: 1;
+      font-size: 13px;
+      line-height: 1.5;
+      padding-left: 0;
     }
 
-    .terminal-success {
+    .terminal-line.terminal-success {
+      border-left-color: #4ec9b0;
+    }
+
+    .terminal-line.terminal-success .terminal-message {
       color: #4ec9b0;
     }
 
-    .terminal-error {
+    .terminal-line.terminal-error {
+      border-left-color: #f48771;
+    }
+
+    .terminal-line.terminal-error .terminal-message {
       color: #f48771;
     }
 
-    .terminal-warning {
+    .terminal-line.terminal-warning {
+      border-left-color: #dcdcaa;
+    }
+
+    .terminal-line.terminal-warning .terminal-message {
       color: #dcdcaa;
     }
 
-    .terminal-info {
+    .terminal-line.terminal-info {
+      border-left-color: #9cdcfe;
+    }
+
+    .terminal-line.terminal-info .terminal-message {
       color: #9cdcfe;
     }
 
-    .terminal-prompt {
+    .terminal-line.terminal-prompt {
+      border-left-color: #4ec9b0;
+    }
+
+    .terminal-line.terminal-prompt .terminal-message {
       color: #4ec9b0;
     }
 
@@ -618,6 +646,77 @@
 
     .refresh-btn:hover {
       background: #45a049;
+    }
+
+    /* API Configuration Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h3 {
+      color: #333;
+      font-size: 20px;
+    }
+
+    .modal-close {
+      background: #f0f0f0;
+      border: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      color: #666;
+    }
+
+    .modal-close:hover {
+      background: #e0e0e0;
+    }
+
+    .config-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+
+    .config-btn:hover {
+      background: #5568d3;
     }
   </style>
 </head>
@@ -1269,14 +1368,14 @@ This phase will output a fully functional application file.`
 
       const timestamp = new Date().toLocaleTimeString();
       const line = document.createElement('div');
-      line.className = 'terminal-line';
-
-      const typeClass = `terminal-${type}`;
+      line.className = `terminal-line terminal-${type}`;
 
       line.innerHTML = `
-        <span class="terminal-timestamp">${timestamp}</span>
-        <span class="terminal-agent">[${agent}]</span>
-        <span class="terminal-message ${typeClass}">${message}</span>
+        <div class="terminal-header-line">
+          <span class="terminal-timestamp">${timestamp}</span>
+          <span class="terminal-agent">[${agent}]</span>
+        </div>
+        <div class="terminal-message">${message}</div>
       `;
 
       terminal.appendChild(line);
@@ -1362,6 +1461,9 @@ This phase will output a fully functional application file.`
               <div style="color: #888; font-size: 11px; margin-top: 5px;">
                 Env: ${api.env}
               </div>
+              <button class="config-btn" onclick="openAPIConfig('${api.name}', '${api.env}')">
+                ${configured ? '🔧 Reconfigure' : '⚙️ Configure'}
+              </button>
             </div>
           `;
         }).join('');
@@ -1373,6 +1475,58 @@ This phase will output a fully functional application file.`
     // Load API status on page load
     checkAPIStatus();
 
+    // API Configuration Modal Functions
+    function openAPIConfig(apiName, apiEnv) {
+      const modal = document.getElementById('apiConfigModal');
+      document.getElementById('modalAPIName').textContent = apiName;
+      document.getElementById('apiKeyInput').value = '';
+      document.getElementById('apiKeyInput').dataset.env = apiEnv;
+      modal.classList.add('show');
+      logToTerminal('USER', `Opening configuration for ${apiName}`, 'info');
+    }
+
+    function closeAPIConfig() {
+      document.getElementById('apiConfigModal').classList.remove('show');
+    }
+
+    async function saveAPIKey() {
+      const input = document.getElementById('apiKeyInput');
+      const apiKey = input.value.trim();
+      const envVar = input.dataset.env;
+      const apiName = document.getElementById('modalAPIName').textContent;
+
+      if (!apiKey) {
+        showAlert('Please enter an API key', 'warning');
+        return;
+      }
+
+      try {
+        logToTerminal('SYSTEM', `Saving ${envVar}...`, 'info');
+
+        const response = await fetch('/api/config/set-key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: envVar, value: apiKey })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          logToTerminal('SYSTEM', `✅ ${apiName} configured successfully`, 'success');
+          showAlert(`${apiName} configured successfully!`, 'success');
+          closeAPIConfig();
+          checkAPIStatus();
+          loadFullAPIList();
+        } else {
+          logToTerminal('SYSTEM', `❌ Failed to configure ${apiName}: ${data.error}`, 'error');
+          showAlert('Error: ' + data.error, 'warning');
+        }
+      } catch (error) {
+        logToTerminal('SYSTEM', `❌ Network error: ${error.message}`, 'error');
+        showAlert('Network error: ' + error.message, 'warning');
+      }
+    }
+
     // Log initial system message
     setTimeout(() => {
       logToTerminal('SYSTEM', 'DEV-TOOL-KIT-A2A initialized successfully', 'success');
@@ -1380,5 +1534,35 @@ This phase will output a fully functional application file.`
       logToTerminal('SYSTEM', '12 external APIs available (click API Status to view)', 'info');
     }, 500);
   </script>
+
+  <!-- API Configuration Modal -->
+  <div id="apiConfigModal" class="modal-overlay" onclick="if(event.target === this) closeAPIConfig()">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🔑 Configure API: <span id="modalAPIName"></span></h3>
+        <button class="modal-close" onclick="closeAPIConfig()">×</button>
+      </div>
+      <div class="input-group">
+        <label for="apiKeyInput">API Key:</label>
+        <input
+          type="text"
+          id="apiKeyInput"
+          placeholder="Enter your API key..."
+          style="padding: 12px; font-size: 14px; font-family: monospace;"
+        />
+      </div>
+      <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
+        This key will be stored in the server environment. You'll need to redeploy on Render for changes to persist.
+      </p>
+      <div class="button-group">
+        <button class="btn-success" onclick="saveAPIKey()" style="flex: 1;">
+          💾 Save Key
+        </button>
+        <button class="btn-secondary" onclick="closeAPIConfig()" style="flex: 1;">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
