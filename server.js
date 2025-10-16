@@ -1562,7 +1562,7 @@ async function callClaude(agentType, input) {
   };
 
   // Use the latest stable Claude model
-  const model = 'claude-3-5-sonnet-20241022'; // Latest as of Oct 2024
+  const model = 'claude-3-5-sonnet-20240620'; // Claude 3.5 Sonnet
 
   try {
     console.log(`[Claude API] Calling ${agentType} agent with model: ${model}`);
