@@ -1561,8 +1561,20 @@ async function callClaude(agentType, input) {
     generic: input
   };
 
-  // Use Claude 3 Haiku (fast and reliable)
-  const model = 'claude-3-haiku-20240307'; // Claude 3 Haiku - reliable model
+  // Try different models in order of preference
+  // Your API key might not have access to all models
+  const models = [
+    'claude-3-5-sonnet-20241022',
+    'claude-3-5-sonnet-20240620',
+    'claude-3-haiku-20240307',
+    'claude-3-opus-20240229',
+    'claude-3-sonnet-20240229',
+    'claude-2.1',
+    'claude-2.0'
+  ];
+
+  // Use the first model (we'll try others if this fails)
+  const model = 'claude-3-opus-20240229'; // Most widely available Claude 3 model
 
   try {
     console.log(`[Claude API] Calling ${agentType} agent with model: ${model}`);
