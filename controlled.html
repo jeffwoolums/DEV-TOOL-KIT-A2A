@@ -26,13 +26,135 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
       overflow: hidden;
       display: grid;
-      grid-template-columns: 1fr 500px;
+      grid-template-columns: 600px 1fr;
       height: calc(100vh - 40px);
     }
 
     .left-panel {
-      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
       height: 100%;
+      overflow: hidden;
+    }
+
+    .terminal-section {
+      flex: 1;
+      background: #1e1e1e;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-top: 2px solid #333;
+    }
+
+    .terminal-header {
+      background: #2d2d2d;
+      padding: 12px 20px;
+      color: white;
+      border-bottom: 1px solid #444;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .terminal-header h3 {
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .terminal-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .terminal-btn {
+      background: #3d3d3d;
+      color: #ccc;
+      border: 1px solid #555;
+      padding: 4px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .terminal-btn:hover {
+      background: #4d4d4d;
+    }
+
+    .terminal-output {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #d4d4d4;
+      background: #1e1e1e;
+    }
+
+    .terminal-line {
+      margin-bottom: 4px;
+      display: flex;
+      gap: 10px;
+      animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .terminal-timestamp {
+      color: #666;
+      font-size: 11px;
+      min-width: 65px;
+    }
+
+    .terminal-agent {
+      color: #569cd6;
+      font-weight: bold;
+      min-width: 140px;
+    }
+
+    .terminal-message {
+      color: #d4d4d4;
+      flex: 1;
+    }
+
+    .terminal-success {
+      color: #4ec9b0;
+    }
+
+    .terminal-error {
+      color: #f48771;
+    }
+
+    .terminal-warning {
+      color: #dcdcaa;
+    }
+
+    .terminal-info {
+      color: #9cdcfe;
+    }
+
+    .terminal-prompt {
+      color: #4ec9b0;
+    }
+
+    .terminal-empty {
+      text-align: center;
+      color: #666;
+      padding: 40px 20px;
+      font-size: 13px;
+    }
+
+    .controls-section {
+      padding: 20px;
+      background: white;
+      border-bottom: 2px solid #e0e0e0;
+      max-height: 300px;
+      overflow-y: auto;
     }
 
     .right-panel {
@@ -473,14 +595,12 @@
   <div class="container">
     <!-- Left Panel -->
     <div class="left-panel">
-      <div class="header">
-        <h1>🚀 DEV-TOOL-KIT-A2A</h1>
-        <p>Controlled Multi-Agent Development Workflow</p>
-      </div>
+      <!-- Compact Controls Section -->
+      <div class="controls-section">
+        <h2 style="font-size: 20px; margin-bottom: 15px;">🚀 DEV-TOOL-KIT-A2A</h2>
 
-      <div class="main-content">
       <!-- API Status Section -->
-      <div class="api-status" id="apiStatus">
+      <div class="api-status" id="apiStatus" style="margin-bottom: 20px;">
         <h3>🔌 API Configuration Status</h3>
         <div class="api-grid" id="apiGrid">
           <div class="api-item">
@@ -490,77 +610,59 @@
         </div>
       </div>
 
-      <!-- Project Input Section -->
-      <div class="workflow-section">
-        <div class="input-group">
-          <label for="projectDescription">📝 Describe Your Application</label>
+        <div class="input-group" style="margin-bottom: 15px;">
+          <label for="projectDescription" style="font-size: 14px;">📝 Describe Your Application</label>
           <textarea
             id="projectDescription"
-            placeholder="Example: Build a todo list app with user authentication and dark mode..."
+            placeholder="Example: Build a todo list app..."
+            style="min-height: 60px; font-size: 13px;"
           ></textarea>
         </div>
 
         <div class="button-group">
-          <button id="startBtn" class="btn-primary" onclick="startWorkflow()">
+          <button id="startBtn" class="btn-primary" onclick="startWorkflow()" style="padding: 10px 20px; font-size: 14px;">
             Start Workflow
           </button>
-          <button id="resetBtn" class="btn-secondary" onclick="resetWorkflow()" style="display:none;">
+          <button id="resetBtn" class="btn-secondary" onclick="resetWorkflow()" style="display:none; padding: 10px 20px; font-size: 14px;">
             Reset
           </button>
         </div>
 
-        <div id="alertBox"></div>
-      </div>
+        <div id="alertBox" style="margin-top: 15px;"></div>
 
-      <!-- Phase Indicator -->
-      <div class="phase-indicator" id="phaseIndicator" style="display:none;">
-        <div class="phase-step" id="phase-design">
-          <div class="phase-circle">1</div>
-          <p>Design</p>
-        </div>
-        <div class="phase-step" id="phase-infrastructure">
-          <div class="phase-circle">2</div>
-          <p>Infrastructure</p>
-        </div>
-        <div class="phase-step" id="phase-code">
-          <div class="phase-circle">3</div>
-          <p>Code</p>
-        </div>
-      </div>
-
-      <!-- Phase Execution Controls -->
-      <div id="phaseControls" style="display:none;">
-        <div class="workflow-section">
-          <h3>Current Phase: <span id="currentPhaseText"></span></h3>
-          <div class="button-group">
-            <button id="executePhaseBtn" class="btn-success" onclick="executePhase()">
-              Execute Phase
-            </button>
-            <button id="skipPhaseBtn" class="btn-warning" onclick="skipPhase()">
-              Skip Phase
-            </button>
+        <!-- Phase Execution Controls -->
+        <div id="phaseControls" style="display:none; margin-top: 20px;">
+          <div style="background: #f0f0f0; padding: 15px; border-radius: 8px;">
+            <div style="margin-bottom: 10px; font-weight: 600; font-size: 13px;">
+              Phase: <span id="currentPhaseText"></span>
+            </div>
+            <div class="button-group">
+              <button id="executePhaseBtn" class="btn-success" onclick="executePhase()" style="padding: 8px 16px; font-size: 13px;">
+                ▶ Execute
+              </button>
+              <button id="skipPhaseBtn" class="btn-warning" onclick="skipPhase()" style="padding: 8px 16px; font-size: 13px;">
+                ⏭ Skip
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Results Sections -->
-      <div id="designResult" class="result-box">
-        <h4>📐 Design Specification</h4>
-        <div id="designContent" class="result-content"></div>
-      </div>
-
-      <div id="infrastructureResult" class="result-box">
-        <h4>☁️ Infrastructure Plan</h4>
-        <div id="infrastructureContent" class="result-content"></div>
-      </div>
-
-      <div id="codeResult" class="result-box">
-        <h4>💻 Generated Code</h4>
-        <div id="codeContent" class="result-content"></div>
-        <button class="download-btn" onclick="downloadCode()" id="downloadCodeBtn" style="display:none;">
-          Download Code as HTML
-        </button>
-      </div>
+      <!-- Terminal Section -->
+      <div class="terminal-section">
+        <div class="terminal-header">
+          <h3>💻 Agent Activity Stream</h3>
+          <div class="terminal-controls">
+            <button class="terminal-btn" onclick="clearTerminal()">Clear</button>
+            <button class="terminal-btn" onclick="scrollTerminal()">⬇ Bottom</button>
+          </div>
+        </div>
+        <div class="terminal-output" id="terminalOutput">
+          <div class="terminal-empty">
+            <div style="font-size: 32px; margin-bottom: 10px;">⚡</div>
+            <div>Agent activity will appear here...</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -663,12 +765,17 @@
 
       if (!description) {
         showAlert('Please enter a project description', 'warning');
+        logToTerminal('SYSTEM', 'Error: Project description required', 'error');
         return;
       }
 
       try {
         document.getElementById('startBtn').disabled = true;
         document.getElementById('startBtn').innerHTML = '<span class="loading-spinner"></span> Creating Workflow...';
+
+        logToTerminal('SYSTEM', '═══════════════════════════════════════', 'info');
+        logToTerminal('SYSTEM', 'Initializing new workflow...', 'info');
+        logToTerminal('USER INPUT', description, 'prompt');
 
         const response = await fetch('/api/workflow/start', {
           method: 'POST',
@@ -682,6 +789,10 @@
           currentWorkflow = data.workflowId;
           currentPhase = 'design';
 
+          logToTerminal('SYSTEM', `✅ Workflow created: ${data.workflowId.substring(0, 8)}...`, 'success');
+          logToTerminal('SYSTEM', 'Workflow type: Controlled Development (3-phase)', 'info');
+          logToTerminal('SYSTEM', 'Ready to execute Phase 1: Design', 'success');
+
           showAlert('Workflow created! Ready to execute design phase.', 'success');
 
           document.getElementById('phaseIndicator').style.display = 'flex';
@@ -692,11 +803,13 @@
           updatePhaseIndicator();
           updatePhaseControls();
         } else {
+          logToTerminal('SYSTEM', `❌ Workflow creation failed: ${data.error}`, 'error');
           showAlert('Error: ' + data.error, 'warning');
           document.getElementById('startBtn').disabled = false;
           document.getElementById('startBtn').innerHTML = 'Start Workflow';
         }
       } catch (error) {
+        logToTerminal('SYSTEM', `❌ Network error: ${error.message}`, 'error');
         showAlert('Network error: ' + error.message, 'warning');
         document.getElementById('startBtn').disabled = false;
         document.getElementById('startBtn').innerHTML = 'Start Workflow';
@@ -710,6 +823,19 @@
         document.getElementById('executePhaseBtn').disabled = true;
         document.getElementById('executePhaseBtn').innerHTML = '<span class="loading-spinner"></span> Executing...';
 
+        const phaseNames = {
+          'design': 'DESIGN AGENT',
+          'infrastructure': 'INFRASTRUCTURE AGENT',
+          'code': 'CODE AGENT'
+        };
+
+        const agentName = phaseNames[currentPhase] || currentPhase.toUpperCase();
+
+        logToTerminal('SYSTEM', '─────────────────────────────────────', 'info');
+        logToTerminal('SYSTEM', `Starting Phase: ${capitalizeFirst(currentPhase)}`, 'warning');
+        logToTerminal(agentName, 'Agent initializing...', 'info');
+        logToTerminal(agentName, 'Connecting to Claude API...', 'info');
+
         const response = await fetch('/api/workflow/execute-phase', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -722,6 +848,30 @@
         const data = await response.json();
 
         if (data.success) {
+          logToTerminal('Claude API', '✅ Connection successful', 'success');
+          logToTerminal(agentName, `Processing ${currentPhase} requirements...`, 'info');
+
+          // Simulate thinking process
+          setTimeout(() => {
+            logToTerminal(agentName, 'Analyzing project specifications...', 'info');
+          }, 200);
+
+          setTimeout(() => {
+            logToTerminal(agentName, 'Generating output...', 'info');
+          }, 400);
+
+          setTimeout(() => {
+            const resultLength = data.result ? data.result.length : 0;
+            logToTerminal(agentName, `✅ ${capitalizeFirst(currentPhase)} complete (${resultLength} characters)`, 'success');
+
+            if (data.subtasks && Object.keys(data.subtasks).length > 0) {
+              logToTerminal(agentName, `Created ${Object.keys(data.subtasks).length} subtasks`, 'info');
+              Object.keys(data.subtasks).forEach(subtask => {
+                logToTerminal('SUBTASK', `→ ${subtask}`, 'warning');
+              });
+            }
+          }, 600);
+
           // Mark phase as complete
           document.getElementById(`phase-${currentPhase}`).classList.add('complete');
 
@@ -732,27 +882,41 @@
           currentPhase = data.currentPhase;
 
           if (data.workflowComplete) {
+            setTimeout(() => {
+              logToTerminal('SYSTEM', '═══════════════════════════════════════', 'success');
+              logToTerminal('SYSTEM', '🎉 WORKFLOW COMPLETE! All phases executed successfully', 'success');
+              logToTerminal('SYSTEM', '═══════════════════════════════════════', 'success');
+            }, 800);
             showAlert('Workflow complete! All phases executed successfully.', 'success');
             document.getElementById('phaseControls').style.display = 'none';
             document.getElementById('downloadCodeBtn').style.display = 'inline-block';
           } else {
+            setTimeout(() => {
+              logToTerminal('SYSTEM', `Ready to execute Phase: ${capitalizeFirst(data.currentPhase)}`, 'success');
+            }, 800);
             showAlert(`${capitalizeFirst(data.phase)} phase complete! Ready for next phase.`, 'success');
             updatePhaseIndicator();
             updatePhaseControls();
           }
         } else {
+          logToTerminal('Claude API', `❌ Error: ${data.error}`, 'error');
           showAlert('Error: ' + data.error, 'warning');
         }
       } catch (error) {
+        logToTerminal('SYSTEM', `❌ Network error: ${error.message}`, 'error');
         showAlert('Network error: ' + error.message, 'warning');
       } finally {
         document.getElementById('executePhaseBtn').disabled = false;
-        document.getElementById('executePhaseBtn').innerHTML = 'Execute Phase';
+        document.getElementById('executePhaseBtn').innerHTML = '▶ Execute';
       }
     }
 
     function skipPhase() {
       if (confirm('Are you sure you want to skip this phase? This will move to the next phase without executing.')) {
+        const skippedPhase = currentPhase;
+
+        logToTerminal('USER', `⏭️ Skipping ${skippedPhase} phase`, 'warning');
+
         // Mark as complete (with skip indicator)
         document.getElementById(`phase-${currentPhase}`).classList.add('complete');
 
@@ -765,9 +929,11 @@
         currentPhase = phaseMap[currentPhase];
 
         if (currentPhase === 'complete') {
+          logToTerminal('SYSTEM', 'Workflow cancelled/skipped', 'warning');
           showAlert('Workflow cancelled/skipped', 'info');
           document.getElementById('phaseControls').style.display = 'none';
         } else {
+          logToTerminal('SYSTEM', `Moving to ${currentPhase} phase...`, 'info');
           showAlert('Phase skipped. Moving to next phase.', 'info');
           updatePhaseIndicator();
           updatePhaseControls();
@@ -815,6 +981,8 @@
     function updatePreview(htmlCode) {
       const container = document.getElementById('previewContainer');
 
+      logToTerminal('PREVIEW', 'Rendering generated code...', 'info');
+
       // Extract just the HTML code (remove any markdown or explanations)
       let cleanCode = htmlCode;
 
@@ -825,6 +993,7 @@
       const htmlMatch = cleanCode.match(/<!DOCTYPE[\s\S]*<\/html>/i);
       if (htmlMatch) {
         cleanCode = htmlMatch[0];
+        logToTerminal('PREVIEW', '✅ HTML structure validated', 'success');
       }
 
       container.innerHTML = `
@@ -838,10 +1007,13 @@
       iframeDoc.open();
       iframeDoc.write(cleanCode);
       iframeDoc.close();
+
+      logToTerminal('PREVIEW', `✅ Preview loaded (${currentDevice} mode)`, 'success');
     }
 
     function refreshPreview() {
       if (generatedCode) {
+        logToTerminal('USER', '🔄 Refreshing preview...', 'info');
         updatePreview(generatedCode);
         showAlert('Preview refreshed!', 'success');
       }
@@ -849,6 +1021,20 @@
 
     function setDevice(device) {
       currentDevice = device;
+
+      const deviceEmojis = {
+        'desktop': '🖥️',
+        'tablet': '📱',
+        'mobile': '📱'
+      };
+
+      const deviceSizes = {
+        'desktop': 'Full width',
+        'tablet': '768px',
+        'mobile': '375px'
+      };
+
+      logToTerminal('PREVIEW', `${deviceEmojis[device]} Switching to ${device} view (${deviceSizes[device]})`, 'info');
 
       // Update button states
       document.querySelectorAll('.device-btn').forEach(btn => {
@@ -880,8 +1066,11 @@
 
     function resetWorkflow() {
       if (confirm('Are you sure you want to reset? This will clear all progress.')) {
+        logToTerminal('USER', '🔄 Resetting workflow...', 'warning');
+
         currentWorkflow = null;
         currentPhase = null;
+        generatedCode = null;
 
         document.getElementById('phaseIndicator').style.display = 'none';
         document.getElementById('phaseControls').style.display = 'none';
@@ -897,6 +1086,18 @@
 
         document.getElementById('projectDescription').value = '';
         document.getElementById('alertBox').innerHTML = '';
+
+        // Reset preview
+        document.getElementById('previewContainer').innerHTML = `
+          <div class="preview-empty">
+            <div class="preview-empty-icon">📄</div>
+            <p>Generate code to see preview</p>
+          </div>
+        `;
+        document.getElementById('refreshPreviewBtn').style.display = 'none';
+
+        logToTerminal('SYSTEM', '✅ Workflow reset complete', 'success');
+        logToTerminal('SYSTEM', 'Ready for new workflow...', 'info');
       }
     }
 
@@ -913,8 +1114,55 @@
       return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
+    // Terminal functions
+    function logToTerminal(agent, message, type = 'info') {
+      const terminal = document.getElementById('terminalOutput');
+
+      // Remove empty state if present
+      const emptyState = terminal.querySelector('.terminal-empty');
+      if (emptyState) {
+        terminal.innerHTML = '';
+      }
+
+      const timestamp = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.className = 'terminal-line';
+
+      const typeClass = `terminal-${type}`;
+
+      line.innerHTML = `
+        <span class="terminal-timestamp">${timestamp}</span>
+        <span class="terminal-agent">[${agent}]</span>
+        <span class="terminal-message ${typeClass}">${message}</span>
+      `;
+
+      terminal.appendChild(line);
+      scrollTerminal();
+    }
+
+    function clearTerminal() {
+      const terminal = document.getElementById('terminalOutput');
+      terminal.innerHTML = `
+        <div class="terminal-empty">
+          <div style="font-size: 32px; margin-bottom: 10px;">⚡</div>
+          <div>Terminal cleared. Agent activity will appear here...</div>
+        </div>
+      `;
+    }
+
+    function scrollTerminal() {
+      const terminal = document.getElementById('terminalOutput');
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
     // Load API status on page load
     checkAPIStatus();
+
+    // Log initial system message
+    setTimeout(() => {
+      logToTerminal('SYSTEM', 'DEV-TOOL-KIT-A2A initialized successfully', 'success');
+      logToTerminal('SYSTEM', 'Multi-agent orchestrator ready', 'info');
+    }, 500);
   </script>
 </body>
 </html>
