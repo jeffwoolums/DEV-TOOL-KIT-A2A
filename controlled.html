@@ -795,22 +795,32 @@
 
           showAlert('Workflow created! Ready to execute design phase.', 'success');
 
-          document.getElementById('phaseControls').style.display = 'block';
-          document.getElementById('resetBtn').style.display = 'inline-block';
-          document.getElementById('startBtn').style.display = 'none';
+          const phaseControls = document.getElementById('phaseControls');
+          const resetBtn = document.getElementById('resetBtn');
+          const startBtn = document.getElementById('startBtn');
+
+          if (phaseControls) phaseControls.style.display = 'block';
+          if (resetBtn) resetBtn.style.display = 'inline-block';
+          if (startBtn) startBtn.style.display = 'none';
 
           updatePhaseControls();
         } else {
           logToTerminal('SYSTEM', `❌ Workflow creation failed: ${data.error}`, 'error');
           showAlert('Error: ' + data.error, 'warning');
-          document.getElementById('startBtn').disabled = false;
-          document.getElementById('startBtn').innerHTML = 'Start Workflow';
+          const startBtn = document.getElementById('startBtn');
+          if (startBtn) {
+            startBtn.disabled = false;
+            startBtn.innerHTML = 'Start Workflow';
+          }
         }
       } catch (error) {
         logToTerminal('SYSTEM', `❌ Network error: ${error.message}`, 'error');
         showAlert('Network error: ' + error.message, 'warning');
-        document.getElementById('startBtn').disabled = false;
-        document.getElementById('startBtn').innerHTML = 'Start Workflow';
+        const startBtn = document.getElementById('startBtn');
+        if (startBtn) {
+          startBtn.disabled = false;
+          startBtn.innerHTML = 'Start Workflow';
+        }
       }
     }
 
@@ -938,7 +948,10 @@
         'code': 'Code Generation'
       };
 
-      document.getElementById('currentPhaseText').textContent = phaseNames[currentPhase] || '';
+      const currentPhaseText = document.getElementById('currentPhaseText');
+      if (currentPhaseText) {
+        currentPhaseText.textContent = phaseNames[currentPhase] || '';
+      }
     }
 
     function displayResult(phase, content) {
@@ -946,7 +959,8 @@
       if (phase === 'code') {
         generatedCode = content;
         updatePreview(content);
-        document.getElementById('refreshPreviewBtn').style.display = 'inline-block';
+        const refreshBtn = document.getElementById('refreshPreviewBtn');
+        if (refreshBtn) refreshBtn.style.display = 'inline-block';
       }
     }
 
