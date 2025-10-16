@@ -26,15 +26,26 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
       overflow: hidden;
       display: grid;
-      grid-template-columns: 600px 1fr;
+      grid-template-columns: 350px 1fr 500px;
       height: calc(100vh - 40px);
     }
 
     .left-panel {
+      background: #1e1e1e;
       display: flex;
       flex-direction: column;
       height: 100%;
       overflow: hidden;
+      border-right: 2px solid #333;
+    }
+
+    .middle-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow-y: auto;
+      background: white;
+      padding: 20px;
     }
 
     .terminal-section {
@@ -43,7 +54,6 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      border-top: 2px solid #333;
     }
 
     .terminal-header {
@@ -149,20 +159,40 @@
       font-size: 13px;
     }
 
-    .controls-section {
-      padding: 20px;
-      background: white;
-      border-bottom: 2px solid #e0e0e0;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
     .right-panel {
       background: #1e1e1e;
       border-left: 2px solid #333;
       display: flex;
       flex-direction: column;
       height: 100%;
+    }
+
+    .plan-preview {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .plan-preview.show {
+      display: block;
+    }
+
+    .plan-preview h4 {
+      color: #856404;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .plan-preview-content {
+      color: #856404;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
     }
 
     @media (max-width: 1200px) {
@@ -593,15 +623,30 @@
 </head>
 <body>
   <div class="container">
-    <!-- Left Panel -->
+    <!-- Left Panel - Terminal -->
     <div class="left-panel">
-      <!-- Compact Controls Section -->
-      <div class="controls-section">
-        <h2 style="font-size: 20px; margin-bottom: 15px;">🚀 DEV-TOOL-KIT-A2A</h2>
+      <div class="terminal-header">
+        <h3>💻 Terminal</h3>
+        <div class="terminal-controls">
+          <button class="terminal-btn" onclick="clearTerminal()">Clear</button>
+          <button class="terminal-btn" onclick="scrollTerminal()">⬇ Bottom</button>
+        </div>
+      </div>
+      <div class="terminal-output" id="terminalOutput">
+        <div class="terminal-empty">
+          <div style="font-size: 32px; margin-bottom: 10px;">⚡</div>
+          <div>Agent activity will appear here...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle Panel - Controls -->
+    <div class="middle-panel">
+      <h2 style="margin-bottom: 20px;">🚀 DEV-TOOL-KIT-A2A</h2>
 
       <!-- API Status Section -->
       <div class="api-status" id="apiStatus" style="margin-bottom: 20px;">
-        <h3>🔌 API Configuration Status</h3>
+        <h3>🔌 API Status</h3>
         <div class="api-grid" id="apiGrid">
           <div class="api-item">
             <strong>Loading...</strong>
@@ -610,57 +655,45 @@
         </div>
       </div>
 
-        <div class="input-group" style="margin-bottom: 15px;">
-          <label for="projectDescription" style="font-size: 14px;">📝 Describe Your Application</label>
-          <textarea
-            id="projectDescription"
-            placeholder="Example: Build a todo list app..."
-            style="min-height: 60px; font-size: 13px;"
-          ></textarea>
-        </div>
-
-        <div class="button-group">
-          <button id="startBtn" class="btn-primary" onclick="startWorkflow()" style="padding: 10px 20px; font-size: 14px;">
-            Start Workflow
-          </button>
-          <button id="resetBtn" class="btn-secondary" onclick="resetWorkflow()" style="display:none; padding: 10px 20px; font-size: 14px;">
-            Reset
-          </button>
-        </div>
-
-        <div id="alertBox" style="margin-top: 15px;"></div>
-
-        <!-- Phase Execution Controls -->
-        <div id="phaseControls" style="display:none; margin-top: 20px;">
-          <div style="background: #f0f0f0; padding: 15px; border-radius: 8px;">
-            <div style="margin-bottom: 10px; font-weight: 600; font-size: 13px;">
-              Phase: <span id="currentPhaseText"></span>
-            </div>
-            <div class="button-group">
-              <button id="executePhaseBtn" class="btn-success" onclick="executePhase()" style="padding: 8px 16px; font-size: 13px;">
-                ▶ Execute
-              </button>
-              <button id="skipPhaseBtn" class="btn-warning" onclick="skipPhase()" style="padding: 8px 16px; font-size: 13px;">
-                ⏭ Skip
-              </button>
-            </div>
-          </div>
-        </div>
+      <div class="input-group" style="margin-bottom: 15px;">
+        <label for="projectDescription">📝 Describe Your Application</label>
+        <textarea
+          id="projectDescription"
+          placeholder="Example: Build a todo list app..."
+          style="min-height: 80px;"
+        ></textarea>
       </div>
 
-      <!-- Terminal Section -->
-      <div class="terminal-section">
-        <div class="terminal-header">
-          <h3>💻 Agent Activity Stream</h3>
-          <div class="terminal-controls">
-            <button class="terminal-btn" onclick="clearTerminal()">Clear</button>
-            <button class="terminal-btn" onclick="scrollTerminal()">⬇ Bottom</button>
+      <div class="button-group" style="margin-bottom: 20px;">
+        <button id="startBtn" class="btn-primary" onclick="startWorkflow()">
+          Start Workflow
+        </button>
+        <button id="resetBtn" class="btn-secondary" onclick="resetWorkflow()" style="display:none;">
+          Reset
+        </button>
+      </div>
+
+      <div id="alertBox"></div>
+
+      <!-- Plan Preview -->
+      <div id="planPreview" class="plan-preview">
+        <h4>📋 Agent Plan</h4>
+        <div id="planPreviewContent" class="plan-preview-content"></div>
+      </div>
+
+      <!-- Phase Execution Controls -->
+      <div id="phaseControls" style="display:none; margin-top: 20px;">
+        <div style="background: #f0f0f0; padding: 15px; border-radius: 8px;">
+          <div style="margin-bottom: 10px; font-weight: 600;">
+            Phase: <span id="currentPhaseText"></span>
           </div>
-        </div>
-        <div class="terminal-output" id="terminalOutput">
-          <div class="terminal-empty">
-            <div style="font-size: 32px; margin-bottom: 10px;">⚡</div>
-            <div>Agent activity will appear here...</div>
+          <div class="button-group">
+            <button id="executePhaseBtn" class="btn-success" onclick="executePhase()">
+              ▶ Execute
+            </button>
+            <button id="skipPhaseBtn" class="btn-warning" onclick="skipPhase()">
+              ⏭ Skip
+            </button>
           </div>
         </div>
       </div>
@@ -804,6 +837,7 @@
           if (startBtn) startBtn.style.display = 'none';
 
           updatePhaseControls();
+          showPhasePlan();
         } else {
           logToTerminal('SYSTEM', `❌ Workflow creation failed: ${data.error}`, 'error');
           showAlert('Error: ' + data.error, 'warning');
@@ -901,6 +935,7 @@
             }, 800);
             showAlert(`${capitalizeFirst(completedPhase)} phase complete! Ready for next phase.`, 'success');
             updatePhaseControls();
+            showPhasePlan();
           }
         } else {
           logToTerminal('Claude API', `❌ Error: ${data.error}`, 'error');
@@ -1092,6 +1127,50 @@
 
     function capitalizeFirst(str) {
       return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // Show agent plan before execution
+    function showPhasePlan() {
+      const phasePlans = {
+        'design': `🎨 Design Agent Plan:
+
+• Analyze project requirements
+• Create technical specifications
+• Define architecture & data models
+• Plan user interface components
+• Document API endpoints needed
+
+This phase will output a detailed technical design document.`,
+
+        'infrastructure': `🏗️ Infrastructure Agent Plan:
+
+• Review design specifications
+• Plan backend services & databases
+• Define deployment architecture
+• Configure CI/CD pipeline
+• Set up monitoring & logging
+
+This phase will output an infrastructure blueprint.`,
+
+        'code': `💻 Code Agent Plan:
+
+• Generate complete HTML/CSS/JavaScript
+• Implement all UI components
+• Add responsive design
+• Include all functionality
+• Create working, copy-paste ready code
+
+This phase will output a fully functional application file.`
+      };
+
+      const planPreview = document.getElementById('planPreview');
+      const planContent = document.getElementById('planPreviewContent');
+
+      if (planPreview && planContent && currentPhase) {
+        planContent.textContent = phasePlans[currentPhase] || 'Planning...';
+        planPreview.classList.add('show');
+        logToTerminal('SYSTEM', '📋 Showing agent plan preview', 'info');
+      }
     }
 
     // Terminal functions
