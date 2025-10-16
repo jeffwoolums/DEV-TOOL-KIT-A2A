@@ -50,6 +50,9 @@ async function callClaude(agentType, input) {
   };
 
   try {
+    console.log('Attempting Claude API call with key:', process.env.CLAUDE_API_KEY ? 'Key exists' : 'NO KEY FOUND');
+    console.log('Using model: claude-3-5-sonnet-20241022');
+    
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
