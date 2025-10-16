@@ -646,11 +646,22 @@
 
       <!-- API Status Section -->
       <div class="api-status" id="apiStatus" style="margin-bottom: 20px;">
-        <h3>🔌 API Status</h3>
+        <h3 style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleAPIs()">
+          <span>🔌 API Status</span>
+          <span id="apiToggle" style="font-size: 20px;">▼</span>
+        </h3>
         <div class="api-grid" id="apiGrid">
           <div class="api-item">
             <strong>Loading...</strong>
             <span>Checking API status</span>
+          </div>
+        </div>
+
+        <!-- Full API List (collapsed by default) -->
+        <div id="fullAPIList" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+          <h4 style="margin-bottom: 15px;">📚 Available APIs (12 total)</h4>
+          <div id="apiDetailsList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+            <!-- API details will be populated here -->
           </div>
         </div>
       </div>
@@ -695,6 +706,31 @@
               ⏭ Skip
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Download Section (appears after code generation) -->
+      <div id="downloadSection" style="display:none; margin-top: 20px;">
+        <div style="background: #e8f5e9; border: 2px solid #4caf50; border-radius: 8px; padding: 20px;">
+          <h4 style="margin-bottom: 15px; color: #2e7d32; display: flex; align-items: center; gap: 8px;">
+            💾 Download Generated Code
+          </h4>
+          <div class="input-group" style="margin-bottom: 15px;">
+            <label for="downloadFilename" style="font-size: 14px;">File Name:</label>
+            <input
+              type="text"
+              id="downloadFilename"
+              value="generated-app.html"
+              placeholder="Enter filename..."
+              style="padding: 10px; font-size: 14px;"
+            />
+          </div>
+          <button class="btn-success" onclick="downloadGeneratedCode()" style="width: 100%;">
+            📥 Download to Local Folder
+          </button>
+          <p style="font-size: 12px; color: #666; margin-top: 10px; margin-bottom: 0;">
+            Downloads a complete, ready-to-use HTML file with all code included.
+          </p>
         </div>
       </div>
     </div>
@@ -996,6 +1032,13 @@
         updatePreview(content);
         const refreshBtn = document.getElementById('refreshPreviewBtn');
         if (refreshBtn) refreshBtn.style.display = 'inline-block';
+
+        // Show download section
+        const downloadSection = document.getElementById('downloadSection');
+        if (downloadSection) {
+          downloadSection.style.display = 'block';
+          logToTerminal('SYSTEM', '💾 Download section now available', 'success');
+        }
       }
     }
 
@@ -1072,17 +1115,54 @@
       }
     }
 
-    function downloadCode() {
-      const codeContent = document.getElementById('codeContent').textContent;
-      const blob = new Blob([codeContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'generated-app.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+    function downloadGeneratedCode() {
+      if (!generatedCode) {
+        showAlert('No code available to download', 'warning');
+        logToTerminal('SYSTEM', '❌ No code available to download', 'error');
+        return;
+      }
+
+      try {
+        // Get filename from input
+        const filenameInput = document.getElementById('downloadFilename');
+        let filename = filenameInput ? filenameInput.value.trim() : 'generated-app.html';
+
+        // Ensure .html extension
+        if (!filename.endsWith('.html')) {
+          filename += '.html';
+        }
+
+        // Clean the code (remove markdown fences if present)
+        let cleanCode = generatedCode;
+        cleanCode = cleanCode.replace(/```html\n/g, '').replace(/```\n/g, '').replace(/```/g, '');
+
+        // Extract just the HTML content
+        const htmlMatch = cleanCode.match(/<!DOCTYPE[\s\S]*<\/html>/i);
+        if (htmlMatch) {
+          cleanCode = htmlMatch[0];
+        }
+
+        // Create blob and download
+        const blob = new Blob([cleanCode], { type: 'text/html; charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+
+        logToTerminal('USER', `📥 Initiating download: ${filename}`, 'info');
+        a.click();
+
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        const fileSize = (blob.size / 1024).toFixed(2);
+        logToTerminal('SYSTEM', `✅ Download started: ${filename} (${fileSize} KB)`, 'success');
+        showAlert(`Download started: ${filename}`, 'success');
+      } catch (error) {
+        logToTerminal('SYSTEM', `❌ Download error: ${error.message}`, 'error');
+        showAlert('Download failed: ' + error.message, 'warning');
+      }
     }
 
     function resetWorkflow() {
@@ -1101,6 +1181,10 @@
 
         document.getElementById('projectDescription').value = '';
         document.getElementById('alertBox').innerHTML = '';
+
+        // Reset download section
+        const downloadSection = document.getElementById('downloadSection');
+        if (downloadSection) downloadSection.style.display = 'none';
 
         // Reset preview
         document.getElementById('previewContainer').innerHTML = `
@@ -1214,6 +1298,78 @@ This phase will output a fully functional application file.`
       terminal.scrollTop = terminal.scrollHeight;
     }
 
+    // Toggle API list
+    function toggleAPIs() {
+      const fullList = document.getElementById('fullAPIList');
+      const toggle = document.getElementById('apiToggle');
+
+      if (fullList.style.display === 'none') {
+        fullList.style.display = 'block';
+        toggle.textContent = '▲';
+        loadFullAPIList();
+        logToTerminal('USER', 'Viewing available APIs', 'info');
+      } else {
+        fullList.style.display = 'none';
+        toggle.textContent = '▼';
+      }
+    }
+
+    // Load full API list with all 12 APIs and their details
+    async function loadFullAPIList() {
+      const apiList = document.getElementById('apiDetailsList');
+
+      const apis = [
+        { name: 'OpenWeatherMap', category: 'Weather', icon: '🌤️', description: 'Current weather, forecasts, historical data', endpoints: 'current, forecast', env: 'OPENWEATHER_API_KEY' },
+        { name: 'Mapbox', category: 'Maps', icon: '🗺️', description: 'Geocoding, directions, map data', endpoints: 'geocoding, directions', env: 'MAPBOX_API_KEY' },
+        { name: 'Google Maps', category: 'Maps', icon: '📍', description: 'Geocoding, places, directions', endpoints: 'geocode, places', env: 'GOOGLE_MAPS_API_KEY' },
+        { name: 'NewsAPI', category: 'News', icon: '📰', description: 'Global news articles and headlines', endpoints: 'headlines, everything', env: 'NEWS_API_KEY' },
+        { name: 'Alpha Vantage', category: 'Finance', icon: '📈', description: 'Stock market data, financial indicators', endpoints: 'quote, intraday', env: 'ALPHAVANTAGE_API_KEY' },
+        { name: 'SendGrid', category: 'Email', icon: '📧', description: 'Transactional and marketing emails', endpoints: 'send', env: 'SENDGRID_API_KEY' },
+        { name: 'Twilio', category: 'SMS', icon: '💬', description: 'SMS messages and voice calls', endpoints: 'messages', env: 'TWILIO_API_KEY' },
+        { name: 'HuggingFace', category: 'AI/ML', icon: '🤖', description: 'ML models for NLP, vision, audio', endpoints: 'inference', env: 'HUGGINGFACE_API_KEY' },
+        { name: 'Stripe', category: 'Payment', icon: '💳', description: 'Process payments, manage subscriptions', endpoints: 'charges, customers', env: 'STRIPE_API_KEY' },
+        { name: 'Airtable', category: 'Database', icon: '🗄️', description: 'Cloud database with spreadsheet interface', endpoints: 'list, create', env: 'AIRTABLE_API_KEY' },
+        { name: 'DeepL', category: 'Translation', icon: '🌐', description: 'High-quality text translation', endpoints: 'translate', env: 'DEEPL_API_KEY' },
+        { name: 'Unsplash', category: 'Images', icon: '🖼️', description: 'Free high-quality stock photos', endpoints: 'search, random', env: 'UNSPLASH_API_KEY' }
+      ];
+
+      // Fetch actual status
+      try {
+        const response = await fetch('/api/diagnostics');
+        const data = await response.json();
+        const externalAPIs = data.apiKeys.externalAPIs;
+
+        apiList.innerHTML = apis.map(api => {
+          const configured = externalAPIs[api.env.replace('_API_KEY', '').toLowerCase()];
+
+          return `
+            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid ${configured ? '#4caf50' : '#ff9800'};">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <strong>${api.icon} ${api.name}</strong>
+                <span style="background: ${configured ? '#4caf50' : '#ff9800'}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">
+                  ${configured ? '✅ Ready' : '⚠️ Not Set'}
+                </span>
+              </div>
+              <div style="color: #666; font-size: 12px; margin-bottom: 5px;">
+                <strong>Category:</strong> ${api.category}
+              </div>
+              <div style="color: #666; font-size: 12px; margin-bottom: 5px;">
+                ${api.description}
+              </div>
+              <div style="color: #888; font-size: 11px; font-family: monospace;">
+                Endpoints: ${api.endpoints}
+              </div>
+              <div style="color: #888; font-size: 11px; margin-top: 5px;">
+                Env: ${api.env}
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        apiList.innerHTML = '<div style="color: #666;">Error loading API details</div>';
+      }
+    }
+
     // Load API status on page load
     checkAPIStatus();
 
@@ -1221,6 +1377,7 @@ This phase will output a fully functional application file.`
     setTimeout(() => {
       logToTerminal('SYSTEM', 'DEV-TOOL-KIT-A2A initialized successfully', 'success');
       logToTerminal('SYSTEM', 'Multi-agent orchestrator ready', 'info');
+      logToTerminal('SYSTEM', '12 external APIs available (click API Status to view)', 'info');
     }, 500);
   </script>
 </body>
