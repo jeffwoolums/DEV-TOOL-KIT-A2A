@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEV-TOOL-KIT-A2A - Controlled Workflow</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 40px;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+
+    .main-content {
+      padding: 40px;
+    }
+
+    .api-status {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+
+    .api-status h3 {
+      margin-bottom: 15px;
+      color: #333;
+    }
+
+    .api-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .api-item {
+      background: white;
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 4px solid #ccc;
+      font-size: 14px;
+    }
+
+    .api-item.configured {
+      border-left-color: #4caf50;
+    }
+
+    .api-item.not-configured {
+      border-left-color: #ff9800;
+    }
+
+    .api-item strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .api-item span {
+      color: #666;
+      font-size: 12px;
+    }
+
+    .workflow-section {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 30px;
+      margin-bottom: 30px;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: inherit;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 15px 30px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-success {
+      background: #4caf50;
+      color: white;
+    }
+
+    .btn-warning {
+      background: #ff9800;
+      color: white;
+    }
+
+    .phase-indicator {
+      display: flex;
+      justify-content: space-between;
+      margin: 30px 0;
+      position: relative;
+    }
+
+    .phase-indicator::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 50px;
+      right: 50px;
+      height: 2px;
+      background: #e0e0e0;
+      z-index: 0;
+    }
+
+    .phase-step {
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      flex: 1;
+    }
+
+    .phase-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e0e0e0;
+      margin: 0 auto 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #666;
+    }
+
+    .phase-step.active .phase-circle {
+      background: #667eea;
+      color: white;
+    }
+
+    .phase-step.complete .phase-circle {
+      background: #4caf50;
+      color: white;
+    }
+
+    .phase-step p {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .phase-step.active p {
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    .result-box {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .result-box.show {
+      display: block;
+    }
+
+    .result-box h4 {
+      color: #667eea;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .result-content {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(102, 126, 234, 0.3);
+      border-radius: 50%;
+      border-top-color: #667eea;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .alert {
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .alert-info {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      color: #1976d2;
+    }
+
+    .alert-success {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      color: #2e7d32;
+    }
+
+    .alert-warning {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      color: #e65100;
+    }
+
+    .code-output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      overflow-x: auto;
+    }
+
+    .code-output pre {
+      margin: 0;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .download-btn {
+      margin-top: 15px;
+      background: #4caf50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 DEV-TOOL-KIT-A2A</h1>
+      <p>Controlled Multi-Agent Development Workflow</p>
+    </div>
+
+    <div class="main-content">
+      <!-- API Status Section -->
+      <div class="api-status" id="apiStatus">
+        <h3>🔌 API Configuration Status</h3>
+        <div class="api-grid" id="apiGrid">
+          <div class="api-item">
+            <strong>Loading...</strong>
+            <span>Checking API status</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project Input Section -->
+      <div class="workflow-section">
+        <div class="input-group">
+          <label for="projectDescription">📝 Describe Your Application</label>
+          <textarea
+            id="projectDescription"
+            placeholder="Example: Build a todo list app with user authentication and dark mode..."
+          ></textarea>
+        </div>
+
+        <div class="button-group">
+          <button id="startBtn" class="btn-primary" onclick="startWorkflow()">
+            Start Workflow
+          </button>
+          <button id="resetBtn" class="btn-secondary" onclick="resetWorkflow()" style="display:none;">
+            Reset
+          </button>
+        </div>
+
+        <div id="alertBox"></div>
+      </div>
+
+      <!-- Phase Indicator -->
+      <div class="phase-indicator" id="phaseIndicator" style="display:none;">
+        <div class="phase-step" id="phase-design">
+          <div class="phase-circle">1</div>
+          <p>Design</p>
+        </div>
+        <div class="phase-step" id="phase-infrastructure">
+          <div class="phase-circle">2</div>
+          <p>Infrastructure</p>
+        </div>
+        <div class="phase-step" id="phase-code">
+          <div class="phase-circle">3</div>
+          <p>Code</p>
+        </div>
+      </div>
+
+      <!-- Phase Execution Controls -->
+      <div id="phaseControls" style="display:none;">
+        <div class="workflow-section">
+          <h3>Current Phase: <span id="currentPhaseText"></span></h3>
+          <div class="button-group">
+            <button id="executePhaseBtn" class="btn-success" onclick="executePhase()">
+              Execute Phase
+            </button>
+            <button id="skipPhaseBtn" class="btn-warning" onclick="skipPhase()">
+              Skip Phase
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Sections -->
+      <div id="designResult" class="result-box">
+        <h4>📐 Design Specification</h4>
+        <div id="designContent" class="result-content"></div>
+      </div>
+
+      <div id="infrastructureResult" class="result-box">
+        <h4>☁️ Infrastructure Plan</h4>
+        <div id="infrastructureContent" class="result-content"></div>
+      </div>
+
+      <div id="codeResult" class="result-box">
+        <h4>💻 Generated Code</h4>
+        <div id="codeContent" class="result-content"></div>
+        <button class="download-btn" onclick="downloadCode()" id="downloadCodeBtn" style="display:none;">
+          Download Code as HTML
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentWorkflow = null;
+    let currentPhase = null;
+
+    // Check API status on load
+    async function checkAPIStatus() {
+      try {
+        const response = await fetch('/api/diagnostics');
+        const data = await response.json();
+
+        const apiGrid = document.getElementById('apiGrid');
+        apiGrid.innerHTML = '';
+
+        // Claude API
+        const claudeConfigured = data.apiKeys.claude.configured;
+        apiGrid.innerHTML += `
+          <div class="api-item ${claudeConfigured ? 'configured' : 'not-configured'}">
+            <strong>🤖 Claude AI</strong>
+            <span>${claudeConfigured ? '✅ Ready' : '❌ Not Configured'}</span>
+          </div>
+        `;
+
+        // Supabase
+        const supabaseConfigured = data.apiKeys.supabase.url && data.apiKeys.supabase.key;
+        apiGrid.innerHTML += `
+          <div class="api-item ${supabaseConfigured ? 'configured' : 'not-configured'}">
+            <strong>💾 Supabase</strong>
+            <span>${supabaseConfigured ? '✅ Connected' : '❌ Not Configured'}</span>
+          </div>
+        `;
+
+        // External APIs
+        const externalAPIs = data.apiKeys.externalAPIs;
+        const configuredCount = Object.values(externalAPIs).filter(Boolean).length;
+
+        for (const [name, configured] of Object.entries(externalAPIs)) {
+          if (configured) {
+            apiGrid.innerHTML += `
+              <div class="api-item configured">
+                <strong>${name}</strong>
+                <span>✅ Ready</span>
+              </div>
+            `;
+          }
+        }
+
+        // Show summary if not all configured
+        const totalExternal = Object.keys(externalAPIs).length;
+        if (configuredCount < totalExternal) {
+          apiGrid.innerHTML += `
+            <div class="api-item not-configured">
+              <strong>${totalExternal - configuredCount} APIs</strong>
+              <span>⚠️ Not configured (optional)</span>
+            </div>
+          `;
+        }
+
+      } catch (error) {
+        console.error('Error checking API status:', error);
+      }
+    }
+
+    async function startWorkflow() {
+      const description = document.getElementById('projectDescription').value.trim();
+
+      if (!description) {
+        showAlert('Please enter a project description', 'warning');
+        return;
+      }
+
+      try {
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('startBtn').innerHTML = '<span class="loading-spinner"></span> Creating Workflow...';
+
+        const response = await fetch('/api/workflow/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          currentWorkflow = data.workflowId;
+          currentPhase = 'design';
+
+          showAlert('Workflow created! Ready to execute design phase.', 'success');
+
+          document.getElementById('phaseIndicator').style.display = 'flex';
+          document.getElementById('phaseControls').style.display = 'block';
+          document.getElementById('resetBtn').style.display = 'inline-block';
+          document.getElementById('startBtn').style.display = 'none';
+
+          updatePhaseIndicator();
+          updatePhaseControls();
+        } else {
+          showAlert('Error: ' + data.error, 'warning');
+          document.getElementById('startBtn').disabled = false;
+          document.getElementById('startBtn').innerHTML = 'Start Workflow';
+        }
+      } catch (error) {
+        showAlert('Network error: ' + error.message, 'warning');
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('startBtn').innerHTML = 'Start Workflow';
+      }
+    }
+
+    async function executePhase() {
+      if (!currentWorkflow || !currentPhase) return;
+
+      try {
+        document.getElementById('executePhaseBtn').disabled = true;
+        document.getElementById('executePhaseBtn').innerHTML = '<span class="loading-spinner"></span> Executing...';
+
+        const response = await fetch('/api/workflow/execute-phase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workflowId: currentWorkflow,
+            phase: currentPhase
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Mark phase as complete
+          document.getElementById(`phase-${currentPhase}`).classList.add('complete');
+
+          // Show result
+          displayResult(currentPhase, data.result);
+
+          // Update current phase
+          currentPhase = data.currentPhase;
+
+          if (data.workflowComplete) {
+            showAlert('Workflow complete! All phases executed successfully.', 'success');
+            document.getElementById('phaseControls').style.display = 'none';
+            document.getElementById('downloadCodeBtn').style.display = 'inline-block';
+          } else {
+            showAlert(`${capitalizeFirst(data.phase)} phase complete! Ready for next phase.`, 'success');
+            updatePhaseIndicator();
+            updatePhaseControls();
+          }
+        } else {
+          showAlert('Error: ' + data.error, 'warning');
+        }
+      } catch (error) {
+        showAlert('Network error: ' + error.message, 'warning');
+      } finally {
+        document.getElementById('executePhaseBtn').disabled = false;
+        document.getElementById('executePhaseBtn').innerHTML = 'Execute Phase';
+      }
+    }
+
+    function skipPhase() {
+      if (confirm('Are you sure you want to skip this phase? This will move to the next phase without executing.')) {
+        // Mark as complete (with skip indicator)
+        document.getElementById(`phase-${currentPhase}`).classList.add('complete');
+
+        const phaseMap = {
+          'design': 'infrastructure',
+          'infrastructure': 'code',
+          'code': 'complete'
+        };
+
+        currentPhase = phaseMap[currentPhase];
+
+        if (currentPhase === 'complete') {
+          showAlert('Workflow cancelled/skipped', 'info');
+          document.getElementById('phaseControls').style.display = 'none';
+        } else {
+          showAlert('Phase skipped. Moving to next phase.', 'info');
+          updatePhaseIndicator();
+          updatePhaseControls();
+        }
+      }
+    }
+
+    function updatePhaseIndicator() {
+      // Remove all active classes
+      document.querySelectorAll('.phase-step').forEach(step => {
+        step.classList.remove('active');
+      });
+
+      // Add active to current phase
+      if (currentPhase && currentPhase !== 'complete') {
+        document.getElementById(`phase-${currentPhase}`).classList.add('active');
+      }
+    }
+
+    function updatePhaseControls() {
+      const phaseNames = {
+        'design': 'Design',
+        'infrastructure': 'Infrastructure',
+        'code': 'Code Generation'
+      };
+
+      document.getElementById('currentPhaseText').textContent = phaseNames[currentPhase] || '';
+    }
+
+    function displayResult(phase, content) {
+      const resultBox = document.getElementById(`${phase}Result`);
+      const resultContent = document.getElementById(`${phase}Content`);
+
+      resultBox.classList.add('show');
+      resultContent.textContent = content;
+    }
+
+    function downloadCode() {
+      const codeContent = document.getElementById('codeContent').textContent;
+      const blob = new Blob([codeContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'generated-app.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function resetWorkflow() {
+      if (confirm('Are you sure you want to reset? This will clear all progress.')) {
+        currentWorkflow = null;
+        currentPhase = null;
+
+        document.getElementById('phaseIndicator').style.display = 'none';
+        document.getElementById('phaseControls').style.display = 'none';
+        document.getElementById('startBtn').style.display = 'inline-block';
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('startBtn').innerHTML = 'Start Workflow';
+        document.getElementById('resetBtn').style.display = 'none';
+
+        document.querySelectorAll('.result-box').forEach(box => box.classList.remove('show'));
+        document.querySelectorAll('.phase-step').forEach(step => {
+          step.classList.remove('active', 'complete');
+        });
+
+        document.getElementById('projectDescription').value = '';
+        document.getElementById('alertBox').innerHTML = '';
+      }
+    }
+
+    function showAlert(message, type = 'info') {
+      const alertBox = document.getElementById('alertBox');
+      alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+
+      setTimeout(() => {
+        alertBox.innerHTML = '';
+      }, 5000);
+    }
+
+    function capitalizeFirst(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // Load API status on page load
+    checkAPIStatus();
+  </script>
+</body>
+</html>

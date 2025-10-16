@@ -196,19 +196,29 @@ SUBTASKS: [{"type": "api_integration", "description": "..."}, {"type": "code", "
   }
 
   async generateCode(description, context) {
-    const prompt = `You are a Full Stack Developer AI Agent. Generate production-ready code for: ${description}.
+    const prompt = `You are a Full Stack Developer AI Agent. Generate a COMPLETE, WORKING, COPY-PASTE-READY HTML file for: ${description}.
 
 ${context.previousResults ? `\n\nContext from previous agents:\n${JSON.stringify(context.previousResults, null, 2)}` : ''}
 
-Provide:
-1. Complete HTML structure
-2. Styled CSS (responsive design)
-3. JavaScript functionality
-4. API integration code if needed
-5. Comments explaining key parts
+CRITICAL REQUIREMENTS:
+1. Output ONLY valid HTML code - nothing else
+2. Include ALL code in a single HTML file (HTML + CSS + JavaScript)
+3. Start with <!DOCTYPE html> and end with </html>
+4. Include complete <head> section with title and meta tags
+5. Put CSS in <style> tags in the <head>
+6. Put JavaScript in <script> tags at the end of <body>
+7. Make it fully functional - not pseudo-code or templates
+8. Use modern, clean design with proper spacing and colors
+9. Make it responsive (mobile-friendly)
+10. Include ALL functionality - forms, buttons, event listeners, etc.
 
-IMPORTANT: If you need mobile versions or API integrations, suggest subtasks. Format subtasks as JSON at the end:
-SUBTASKS: [{"type": "mobile_design", "description": "..."}, {"type": "api_integration", "description": "..."}]`;
+DO NOT include:
+- Explanatory text before or after the code
+- Markdown code fences (\`\`\`)
+- Comments outside the HTML
+- Placeholder text saying "add functionality here"
+
+The output should be ready to save as .html and open directly in a browser.`;
 
     const response = await callClaude('code', prompt);
     return this.parseAgentResponse(response);
@@ -1220,7 +1230,115 @@ Generated with DEV-TOOL-KIT-A2A
 
 const projectScaffolder = new ProjectScaffolder();
 
-// API endpoint to create project and run agents
+// CONTROLLED WORKFLOW - Step-by-step execution with guardrails
+app.post('/api/workflow/start', async (req, res) => {
+  const { description } = req.body;
+
+  try {
+    const workflow = taskQueue.createWorkflow({
+      description,
+      type: 'controlled_development',
+      currentPhase: 'design',
+      awaitingApproval: false
+    });
+
+    console.log(`[Controlled Workflow] Created workflow ${workflow.id}`);
+
+    res.json({
+      success: true,
+      workflowId: workflow.id,
+      message: 'Workflow created. Ready to start design phase.',
+      currentPhase: 'design',
+      nextStep: 'Call /api/workflow/execute-phase with workflowId and phase: design'
+    });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/workflow/execute-phase', async (req, res) => {
+  const { workflowId, phase } = req.body;
+
+  try {
+    const workflow = taskQueue.getWorkflow(workflowId);
+    if (!workflow) {
+      return res.json({ success: false, error: 'Workflow not found' });
+    }
+
+    console.log(`[Controlled Workflow] Executing phase: ${phase} for workflow ${workflowId}`);
+
+    let result;
+    switch (phase) {
+      case 'design':
+        const designTask = taskQueue.createTask({
+          type: 'design',
+          description: workflow.description,
+          workflowId: workflow.id,
+          phase: 1
+        });
+        result = await agents.design.executeTask(designTask);
+        workflow.results.design = result.content;
+        workflow.currentPhase = 'infrastructure';
+        break;
+
+      case 'infrastructure':
+        if (!workflow.results.design) {
+          return res.json({ success: false, error: 'Must complete design phase first' });
+        }
+        const infraTask = taskQueue.createTask({
+          type: 'infrastructure',
+          description: workflow.description,
+          workflowId: workflow.id,
+          phase: 2
+        });
+        result = await agents.infrastructure.executeTask(infraTask, {
+          previousResults: { design: workflow.results.design }
+        });
+        workflow.results.infrastructure = result.content;
+        workflow.currentPhase = 'code';
+        break;
+
+      case 'code':
+        if (!workflow.results.infrastructure) {
+          return res.json({ success: false, error: 'Must complete infrastructure phase first' });
+        }
+        const codeTask = taskQueue.createTask({
+          type: 'code',
+          description: workflow.description,
+          workflowId: workflow.id,
+          phase: 3
+        });
+        result = await agents.code.executeTask(codeTask, {
+          previousResults: {
+            design: workflow.results.design,
+            infrastructure: workflow.results.infrastructure
+          }
+        });
+        workflow.results.code = result.content;
+        workflow.currentPhase = 'complete';
+        workflow.status = 'completed';
+        break;
+
+      default:
+        return res.json({ success: false, error: 'Invalid phase' });
+    }
+
+    taskQueue.updateWorkflow(workflowId, workflow);
+
+    res.json({
+      success: true,
+      phase,
+      result: result.content,
+      currentPhase: workflow.currentPhase,
+      workflowComplete: workflow.status === 'completed'
+    });
+  } catch (error) {
+    console.error('[Controlled Workflow] Error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// LEGACY ENDPOINT - Full auto workflow (no guardrails)
 app.post('/api/create-project', async (req, res) => {
   const { description } = req.body;
 
@@ -1659,6 +1777,11 @@ async function callClaude(agentType, input) {
   console.error('[Claude API] All models failed. Last error:', lastError);
   return `Error: None of the Claude models are available with your API key. Last error: ${lastError}. Please check your API key tier and model access.`;
 }
+
+// Controlled workflow page
+app.get('/controlled', (req, res) => {
+  res.sendFile(__dirname + '/controlled.html');
+});
 
 // Main page with working form
 app.get('/', (req, res) => {
