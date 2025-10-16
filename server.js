@@ -1561,71 +1561,103 @@ async function callClaude(agentType, input) {
     generic: input
   };
 
-  // Use the correct Claude model format for Pro tier
-  // Try the @latest alias which always points to the newest version
-  const model = 'claude-3-5-sonnet-latest'; // Always uses latest Claude 3.5 Sonnet
+  // Try models in order - use first one that works
+  const modelsToTry = [
+    'claude-3-5-sonnet-20241022',
+    'claude-3-opus-20240229',
+    'claude-3-sonnet-20240229',
+    'claude-3-haiku-20240307',
+    'claude-2.1'
+  ];
 
-  try {
-    console.log(`[Claude API] Calling ${agentType} agent with model: ${model}`);
+  let lastError = null;
 
-    const requestBody = {
-      model,
-      max_tokens: 2000, // Increased for more detailed responses
-      messages: [{
-        role: 'user',
-        content: prompts[agentType] || input
-      }]
-    };
+  for (const model of modelsToTry) {
+    try {
+      console.log(`[Claude API] Trying ${agentType} agent with model: ${model}`);
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.CLAUDE_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify(requestBody)
-    });
+      const requestBody = {
+        model,
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: prompts[agentType] || input
+        }]
+      };
 
-    const responseText = await response.text();
-    console.log(`[Claude API] Response status: ${response.status}`);
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.CLAUDE_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify(requestBody)
+      });
 
-    if (!response.ok) {
-      console.error(`[Claude API] Error response: ${responseText}`);
+      const responseText = await response.text();
+      console.log(`[Claude API] Model ${model} - Response status: ${response.status}`);
 
-      // Try to parse error for better message
-      try {
-        const errorData = JSON.parse(responseText);
-        throw new Error(`Claude API error (${response.status}): ${errorData.error?.message || responseText}`);
-      } catch (parseError) {
-        throw new Error(`Claude API error (${response.status}): ${responseText}`);
+      if (!response.ok) {
+        console.error(`[Claude API] Model ${model} failed: ${responseText}`);
+
+        // Try to parse error
+        try {
+          const errorData = JSON.parse(responseText);
+          const errorMsg = errorData.error?.message || responseText;
+
+          // If it's a model not found error (404), try next model
+          if (response.status === 404 && (errorMsg.includes('model') || errorData.error?.type === 'not_found_error')) {
+            console.log(`[Claude API] Model ${model} not available, trying next...`);
+            lastError = `Model ${model} not found`;
+            continue; // Try next model
+          }
+
+          // For other errors (auth, rate limit, etc), throw immediately
+          throw new Error(`Claude API error (${response.status}): ${errorMsg}`);
+        } catch (parseError) {
+          // If we can't parse the error, check if it's 404
+          if (response.status === 404) {
+            console.log(`[Claude API] Model ${model} returned 404, trying next...`);
+            lastError = `Model ${model} returned 404`;
+            continue;
+          }
+          throw new Error(`Claude API error (${response.status}): ${responseText}`);
+        }
       }
+
+      // Success! Parse and return
+      const data = JSON.parse(responseText);
+
+      if (!data.content || !data.content[0] || !data.content[0].text) {
+        console.error('[Claude API] Unexpected response format:', data);
+        throw new Error('Unexpected response format from Claude API');
+      }
+
+      console.log(`[Claude API] ✅ Success with model ${model} - received ${data.content[0].text.length} characters`);
+      return data.content[0].text;
+
+    } catch (error) {
+      console.error(`[Claude API] Model ${model} error:`, error.message);
+
+      // Provide helpful error messages for non-model errors
+      if (error.message.includes('401')) {
+        return 'Error: Invalid Claude API key. Please check your CLAUDE_API_KEY environment variable.';
+      } else if (error.message.includes('429')) {
+        return 'Error: Claude API rate limit exceeded. Please try again in a moment.';
+      } else if (!error.message.includes('not found') && !error.message.includes('404')) {
+        // If it's not a model error, return immediately
+        return `Error calling Claude AI: ${error.message}`;
+      }
+
+      // Store error and continue to next model
+      lastError = error.message;
     }
-
-    const data = JSON.parse(responseText);
-
-    if (!data.content || !data.content[0] || !data.content[0].text) {
-      console.error('[Claude API] Unexpected response format:', data);
-      throw new Error('Unexpected response format from Claude API');
-    }
-
-    console.log(`[Claude API] Success - received ${data.content[0].text.length} characters`);
-    return data.content[0].text;
-
-  } catch (error) {
-    console.error('[Claude API] Error:', error.message);
-
-    // Provide helpful error messages
-    if (error.message.includes('401')) {
-      return 'Error: Invalid Claude API key. Please check your CLAUDE_API_KEY environment variable.';
-    } else if (error.message.includes('429')) {
-      return 'Error: Claude API rate limit exceeded. Please try again in a moment.';
-    } else if (error.message.includes('model')) {
-      return 'Error: Invalid model specified. Please update to a valid Claude model.';
-    }
-
-    return `Error calling Claude AI: ${error.message}`;
   }
+
+  // If we get here, all models failed
+  console.error('[Claude API] All models failed. Last error:', lastError);
+  return `Error: None of the Claude models are available with your API key. Last error: ${lastError}. Please check your API key tier and model access.`;
 }
 
 // Main page with working form
