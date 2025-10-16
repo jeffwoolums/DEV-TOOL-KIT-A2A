@@ -795,12 +795,10 @@
 
           showAlert('Workflow created! Ready to execute design phase.', 'success');
 
-          document.getElementById('phaseIndicator').style.display = 'flex';
           document.getElementById('phaseControls').style.display = 'block';
           document.getElementById('resetBtn').style.display = 'inline-block';
           document.getElementById('startBtn').style.display = 'none';
 
-          updatePhaseIndicator();
           updatePhaseControls();
         } else {
           logToTerminal('SYSTEM', `❌ Workflow creation failed: ${data.error}`, 'error');
@@ -872,13 +870,11 @@
             }
           }, 600);
 
-          // Mark phase as complete
-          document.getElementById(`phase-${currentPhase}`).classList.add('complete');
-
           // Show result
           displayResult(currentPhase, data.result);
 
           // Update current phase
+          const completedPhase = currentPhase;
           currentPhase = data.currentPhase;
 
           if (data.workflowComplete) {
@@ -889,13 +885,11 @@
             }, 800);
             showAlert('Workflow complete! All phases executed successfully.', 'success');
             document.getElementById('phaseControls').style.display = 'none';
-            document.getElementById('downloadCodeBtn').style.display = 'inline-block';
           } else {
             setTimeout(() => {
               logToTerminal('SYSTEM', `Ready to execute Phase: ${capitalizeFirst(data.currentPhase)}`, 'success');
             }, 800);
-            showAlert(`${capitalizeFirst(data.phase)} phase complete! Ready for next phase.`, 'success');
-            updatePhaseIndicator();
+            showAlert(`${capitalizeFirst(completedPhase)} phase complete! Ready for next phase.`, 'success');
             updatePhaseControls();
           }
         } else {
@@ -917,9 +911,6 @@
 
         logToTerminal('USER', `⏭️ Skipping ${skippedPhase} phase`, 'warning');
 
-        // Mark as complete (with skip indicator)
-        document.getElementById(`phase-${currentPhase}`).classList.add('complete');
-
         const phaseMap = {
           'design': 'infrastructure',
           'infrastructure': 'code',
@@ -935,21 +926,8 @@
         } else {
           logToTerminal('SYSTEM', `Moving to ${currentPhase} phase...`, 'info');
           showAlert('Phase skipped. Moving to next phase.', 'info');
-          updatePhaseIndicator();
           updatePhaseControls();
         }
-      }
-    }
-
-    function updatePhaseIndicator() {
-      // Remove all active classes
-      document.querySelectorAll('.phase-step').forEach(step => {
-        step.classList.remove('active');
-      });
-
-      // Add active to current phase
-      if (currentPhase && currentPhase !== 'complete') {
-        document.getElementById(`phase-${currentPhase}`).classList.add('active');
       }
     }
 
@@ -964,12 +942,6 @@
     }
 
     function displayResult(phase, content) {
-      const resultBox = document.getElementById(`${phase}Result`);
-      const resultContent = document.getElementById(`${phase}Content`);
-
-      resultBox.classList.add('show');
-      resultContent.textContent = content;
-
       // If it's the code phase, update the preview
       if (phase === 'code') {
         generatedCode = content;
@@ -1072,17 +1044,11 @@
         currentPhase = null;
         generatedCode = null;
 
-        document.getElementById('phaseIndicator').style.display = 'none';
         document.getElementById('phaseControls').style.display = 'none';
         document.getElementById('startBtn').style.display = 'inline-block';
         document.getElementById('startBtn').disabled = false;
         document.getElementById('startBtn').innerHTML = 'Start Workflow';
         document.getElementById('resetBtn').style.display = 'none';
-
-        document.querySelectorAll('.result-box').forEach(box => box.classList.remove('show'));
-        document.querySelectorAll('.phase-step').forEach(step => {
-          step.classList.remove('active', 'complete');
-        });
 
         document.getElementById('projectDescription').value = '';
         document.getElementById('alertBox').innerHTML = '';
