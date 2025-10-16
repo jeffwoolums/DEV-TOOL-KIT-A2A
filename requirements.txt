@@ -1,0 +1,3 @@
+# WARNING: This is a Node.js project, not Python!
+# Delete this file and update Render to use Node.js runtime
+# See render.yaml for correct configuration
