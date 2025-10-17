@@ -425,9 +425,156 @@
     .config-link:hover {
       background: #e3f2fd;
     }
+
+    /* API Configuration Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #999;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+    }
+
+    .api-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .api-item {
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .api-item.configured {
+      border-color: #4caf50;
+      background: #f1f8f4;
+    }
+
+    .api-item.required {
+      border-color: #ff9800;
+      background: #fff8e1;
+    }
+
+    .api-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .api-item-name {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .api-status {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .api-status.configured {
+      background: #4caf50;
+      color: white;
+    }
+
+    .api-status.missing {
+      background: #ff9800;
+      color: white;
+    }
+
+    .api-item-desc {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+
+    .api-input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .api-input-group input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .api-input-group button {
+      padding: 8px 16px;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
+  <!-- API Configuration Modal -->
+  <div class="modal-overlay" id="apiModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">🔑 Configure API Keys</div>
+        <button class="modal-close" onclick="closeAPIModal()">×</button>
+      </div>
+      <p style="color: #666; margin-bottom: 20px;">
+        Your app needs the following API integrations. Please configure the required API keys:
+      </p>
+      <div class="api-list" id="apiList">
+        <!-- API items will be inserted here -->
+      </div>
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn-secondary" onclick="closeAPIModal()">Cancel</button>
+        <button class="btn-primary" onclick="proceedWithAPIs()">Continue Building</button>
+      </div>
+    </div>
+  </div>
   <div class="container">
     <!-- Left Panel - Progress & Chat -->
     <div class="left-panel">
@@ -544,10 +691,59 @@
       fullDescription: '',
       features: [],
       targetUsers: null,
+      requiredAPIs: [],
+      configuredAPIs: [],
       planApproved: false,
       designComplete: false,
       codeGenerated: false,
       canModify: true
+    };
+
+    // API Configuration Map
+    const API_CONFIG = {
+      maps: {
+        names: ['Google Maps', 'Mapbox'],
+        tools: [
+          { name: 'googlemaps', envKey: 'GOOGLE_MAPS_API_KEY', description: 'Google Maps for geocoding, places, and directions' },
+          { name: 'mapbox', envKey: 'MAPBOX_API_KEY', description: 'Mapbox for maps and location services' }
+        ]
+      },
+      weather: {
+        names: ['OpenWeatherMap'],
+        tools: [
+          { name: 'openweathermap', envKey: 'OPENWEATHER_API_KEY', description: 'Weather data and forecasts' }
+        ]
+      },
+      reviews: {
+        names: ['Yelp', 'Google Places'],
+        tools: [
+          { name: 'googlemaps', envKey: 'GOOGLE_MAPS_API_KEY', description: 'Google Places for reviews and ratings' }
+        ]
+      },
+      payment: {
+        names: ['Stripe'],
+        tools: [
+          { name: 'stripe', envKey: 'STRIPE_API_KEY', description: 'Payment processing and subscriptions' }
+        ]
+      },
+      email: {
+        names: ['SendGrid'],
+        tools: [
+          { name: 'sendgrid', envKey: 'SENDGRID_API_KEY', description: 'Transactional email sending' }
+        ]
+      },
+      sms: {
+        names: ['Twilio'],
+        tools: [
+          { name: 'twilio', envKey: 'TWILIO_API_KEY', description: 'SMS messaging and phone calls' }
+        ]
+      },
+      images: {
+        names: ['Unsplash'],
+        tools: [
+          { name: 'unsplash', envKey: 'UNSPLASH_API_KEY', description: 'High-quality stock photos' }
+        ]
+      }
     };
 
     // Auto-resize textarea
@@ -658,10 +854,48 @@
       }
     }
 
+    function detectRequiredAPIs(description) {
+      const lower = description.toLowerCase();
+      const required = new Set();
+
+      // Detect APIs based on keywords
+      if (lower.includes('map') || lower.includes('location') || lower.includes('distance') ||
+          lower.includes('geocod') || lower.includes('direction')) {
+        required.add('maps');
+      }
+      if (lower.includes('weather') || lower.includes('temperature') || lower.includes('forecast')) {
+        required.add('weather');
+      }
+      if (lower.includes('review') || lower.includes('rating') || lower.includes('yelp')) {
+        required.add('reviews');
+      }
+      if (lower.includes('payment') || lower.includes('checkout') || lower.includes('purchase') ||
+          lower.includes('pay') || lower.includes('cart')) {
+        required.add('payment');
+      }
+      if (lower.includes('email') || lower.includes('notification') || lower.includes('subscribe')) {
+        required.add('email');
+      }
+      if (lower.includes('sms') || lower.includes('text message') || lower.includes('phone')) {
+        required.add('sms');
+      }
+      if (lower.includes('photo') || lower.includes('image') || lower.includes('picture') ||
+          lower.includes('gallery')) {
+        required.add('images');
+      }
+
+      // Store detected APIs
+      conversationState.requiredAPIs = Array.from(required);
+      return conversationState.requiredAPIs;
+    }
+
     function analyzeAndSuggestFeatures(description) {
       const lower = description.toLowerCase();
       const suggestions = [];
       suggestions.appType = null;
+
+      // Detect required APIs
+      detectRequiredAPIs(description);
 
       // Detect app type and suggest relevant features
       if (lower.includes('restaurant') || lower.includes('food') || lower.includes('dining')) {
@@ -672,6 +906,10 @@
         suggestions.push('📍 **Distance Calculator** - Show how far each restaurant is from you');
         suggestions.push('📅 **Reservation System** - Let users book tables directly');
         suggestions.push('🔍 **Advanced Filters** - Search by cuisine, price, rating, distance');
+
+        // Add APIs
+        if (!conversationState.requiredAPIs.includes('maps')) conversationState.requiredAPIs.push('maps');
+        if (!conversationState.requiredAPIs.includes('reviews')) conversationState.requiredAPIs.push('reviews');
       } else if (lower.includes('shop') || lower.includes('ecommerce') || lower.includes('store')) {
         suggestions.appType = 'e-commerce platform';
         suggestions.push('💳 **Payment Processing** - Integrate Stripe for secure payments');
@@ -706,13 +944,226 @@
     }
 
     async function moveToPlanningPhase() {
+      // Check if APIs are needed
+      if (conversationState.requiredAPIs.length > 0) {
+        await sleep(600);
+        const apiCount = conversationState.requiredAPIs.length;
+        const apiNames = conversationState.requiredAPIs.map(api => API_CONFIG[api].names.join(' or ')).join(', ');
+
+        addMessage('bot', `I noticed your app needs ${apiCount} API integration${apiCount > 1 ? 's' : ''}: ${apiNames}.`);
+
+        await sleep(800);
+        addMessage('bot', `Let me check which API keys you have configured...`);
+
+        // Check API configuration status
+        await checkAPIConfiguration();
+        return; // Will continue after API configuration
+      }
+
+      // No APIs needed, proceed to planning
+      await continueToPlanning();
+    }
+
+    async function checkAPIConfiguration() {
+      try {
+        const response = await fetch('/api/tools');
+        const data = await response.json();
+
+        if (data.success) {
+          const tools = data.tools;
+          const missing = [];
+          const configured = [];
+
+          // Check each required API
+          conversationState.requiredAPIs.forEach(apiType => {
+            const apiInfo = API_CONFIG[apiType];
+            apiInfo.tools.forEach(tool => {
+              const toolInfo = tools.find(t => t.name === tool.name);
+              if (toolInfo) {
+                if (toolInfo.configured) {
+                  configured.push({ ...tool, ...toolInfo });
+                } else {
+                  missing.push({ ...tool, ...toolInfo });
+                }
+              }
+            });
+          });
+
+          conversationState.configuredAPIs = configured;
+
+          await sleep(800);
+
+          if (missing.length > 0) {
+            addMessage('bot', `You need to configure ${missing.length} API key${missing.length > 1 ? 's' : ''} before I can build your app.`);
+
+            await sleep(500);
+            addMessage('bot', `Don't worry - I'll guide you through the setup!`, {
+              type: 'action',
+              content: `
+                <div style="margin-top: 12px;">
+                  <button class="btn-primary" onclick="openAPIModal()">🔑 Configure API Keys</button>
+                </div>
+              `
+            });
+          } else {
+            addMessage('bot', `✅ Great! All required API keys are configured.`);
+            await sleep(800);
+            await continueToPlanning();
+          }
+        }
+      } catch (error) {
+        console.error('API check error:', error);
+        addMessage('bot', `I couldn't check your API configuration. Continuing anyway...`);
+        await continueToPlanning();
+      }
+    }
+
+    async function openAPIModal() {
+      const modal = document.getElementById('apiModal');
+      const apiList = document.getElementById('apiList');
+
+      // Fetch current API status
+      const response = await fetch('/api/tools');
+      const data = await response.json();
+
+      if (data.success) {
+        apiList.innerHTML = '';
+
+        // Build API list
+        const uniqueAPIs = new Map();
+        conversationState.requiredAPIs.forEach(apiType => {
+          const apiInfo = API_CONFIG[apiType];
+          apiInfo.tools.forEach(tool => {
+            if (!uniqueAPIs.has(tool.envKey)) {
+              const toolStatus = data.tools.find(t => t.name === tool.name);
+              uniqueAPIs.set(tool.envKey, {
+                ...tool,
+                configured: toolStatus ? toolStatus.configured : false
+              });
+            }
+          });
+        });
+
+        uniqueAPIs.forEach((api, envKey) => {
+          const item = document.createElement('div');
+          item.className = `api-item ${api.configured ? 'configured' : 'required'}`;
+          item.id = `api-${envKey}`;
+
+          item.innerHTML = `
+            <div class="api-item-header">
+              <div class="api-item-name">${api.name.replace('_', ' ')}</div>
+              <div class="api-status ${api.configured ? 'configured' : 'missing'}">
+                ${api.configured ? '✓ Configured' : '⚠ Required'}
+              </div>
+            </div>
+            <div class="api-item-desc">${api.description}</div>
+            ${!api.configured ? `
+              <div class="api-input-group">
+                <input type="password" placeholder="Enter API key..." id="input-${envKey}" />
+                <button class="btn-primary" onclick="saveAPIKey('${envKey}', '${api.name}')">Save</button>
+              </div>
+            ` : '<div style="color: #4caf50; font-size: 13px;">✓ This API is already configured</div>'}
+          `;
+
+          apiList.appendChild(item);
+        });
+      }
+
+      modal.classList.add('show');
+    }
+
+    function closeAPIModal() {
+      document.getElementById('apiModal').classList.remove('show');
+    }
+
+    async function saveAPIKey(envKey, apiName) {
+      const input = document.getElementById(`input-${envKey}`);
+      const value = input.value.trim();
+
+      if (!value) {
+        alert('Please enter an API key');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/config/set-key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: envKey, value })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Update UI
+          const item = document.getElementById(`api-${envKey}`);
+          item.className = 'api-item configured';
+          item.querySelector('.api-status').className = 'api-status configured';
+          item.querySelector('.api-status').textContent = '✓ Configured';
+          item.querySelector('.api-input-group').innerHTML = '<div style="color: #4caf50; font-size: 13px;">✓ API key saved successfully!</div>';
+
+          // Test the API key
+          await testAPIKey(apiName, envKey);
+        } else {
+          alert('Error: ' + data.error);
+        }
+      } catch (error) {
+        alert('Network error: ' + error.message);
+      }
+    }
+
+    async function testAPIKey(apiName, envKey) {
+      console.log(`Testing API key for ${apiName}...`);
+
+      try {
+        const response = await fetch('/api/config/validate-key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ toolName: apiName })
+        });
+
+        const data = await response.json();
+
+        const item = document.getElementById(`api-${envKey}`);
+        if (data.success && data.valid) {
+          item.querySelector('.api-input-group').innerHTML = `
+            <div style="color: #4caf50; font-size: 13px;">
+              ✓ API key validated successfully!<br>
+              <span style="color: #666;">${data.message}</span>
+            </div>
+          `;
+        } else {
+          item.querySelector('.api-input-group').innerHTML = `
+            <div style="color: #ff9800; font-size: 13px;">
+              ⚠ API key saved but validation failed<br>
+              <span style="color: #666;">${data.message || 'Could not verify key'}</span>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Validation error:', error);
+      }
+    }
+
+    async function proceedWithAPIs() {
+      closeAPIModal();
+      addMessage('user', 'I\'ve configured the API keys');
+
+      await sleep(600);
+      addMessage('bot', 'Perfect! All APIs are configured. Let me create your development plan now...');
+
+      await sleep(1000);
+      await continueToPlanning();
+    }
+
+    async function continueToPlanning() {
       // Update progress
       updateProgress('discover', 'complete');
       updateProgress('plan', 'active');
       currentStep = 'plan';
 
       await sleep(800);
-      addMessage('bot', `Perfect! Let me analyze everything you've told me and create a comprehensive plan...`);
+      addMessage('bot', `Analyzing your requirements and creating a comprehensive plan...`);
 
       await sleep(1500);
 

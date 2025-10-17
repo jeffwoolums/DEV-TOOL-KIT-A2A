@@ -2105,6 +2105,73 @@ app.post('/api/config/set-key', (req, res) => {
   }
 });
 
+// API Validation endpoint - Test API keys
+app.post('/api/config/validate-key', async (req, res) => {
+  const { toolName } = req.body;
+
+  if (!toolName) {
+    return res.json({ success: false, error: 'Missing toolName' });
+  }
+
+  try {
+    const tool = toolRegistry.getTool(toolName);
+
+    if (!tool) {
+      return res.json({ success: false, error: 'Tool not found' });
+    }
+
+    if (!tool.connector.apiKey) {
+      return res.json({ success: false, error: 'API key not configured' });
+    }
+
+    // Test the API based on tool type
+    let testResult = { valid: false, message: '' };
+
+    try {
+      switch (toolName) {
+        case 'googlemaps':
+          // Test with a simple geocode request
+          const mapsTest = await tool.connector.makeRequest('/geocode/json?address=1600+Amphitheatre+Parkway,+Mountain+View,+CA');
+          testResult = { valid: mapsTest.status === 'OK', message: mapsTest.status === 'OK' ? 'API key is valid' : 'Invalid API key or quota exceeded' };
+          break;
+
+        case 'openweathermap':
+          // Test with a city weather request
+          const weatherTest = await tool.connector.makeRequest('/weather?q=London&appid=' + tool.connector.apiKey);
+          testResult = { valid: weatherTest.cod === 200, message: weatherTest.cod === 200 ? 'API key is valid' : 'Invalid API key' };
+          break;
+
+        case 'stripe':
+          // Stripe keys are validated by format
+          testResult = { valid: tool.connector.apiKey.startsWith('sk_'), message: tool.connector.apiKey.startsWith('sk_') ? 'API key format is valid' : 'Invalid API key format' };
+          break;
+
+        default:
+          // For other APIs, just check if key exists
+          testResult = { valid: true, message: 'API key configured (validation not implemented for this service)' };
+      }
+
+      res.json({
+        success: true,
+        valid: testResult.valid,
+        message: testResult.message,
+        tool: toolName
+      });
+
+    } catch (apiError) {
+      res.json({
+        success: false,
+        valid: false,
+        message: `API test failed: ${apiError.message}`,
+        tool: toolName
+      });
+    }
+
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log('Server running on port ' + PORT);
   console.log('Environment check:');
