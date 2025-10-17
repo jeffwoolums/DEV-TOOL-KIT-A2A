@@ -484,9 +484,13 @@
           <div class="message-avatar bot">🤖</div>
           <div class="message-content">
             <div class="message-text">
-              Hi! I'm your AI development assistant. I'll help you build your application step by step.
+              Hi! I'm your AI development assistant. 👋
               <br><br>
-              What would you like to build today?
+              I'll help you build your application through a conversational process. I'll ask questions to understand your needs, suggest features you might not have thought of, and create exactly what you envision.
+              <br><br>
+              <strong>What would you like to build today?</strong>
+              <br>
+              <em>(e.g., "A restaurant finder app", "An e-commerce store for handmade jewelry", "A real-time chat app for gamers")</em>
             </div>
             <div class="message-time">Just now</div>
           </div>
@@ -534,11 +538,16 @@
     let currentStep = 'discover';
     let currentDevice = 'desktop';
     let workflowId = null;
+    let discoveryQuestions = 0;
     let conversationState = {
-      description: null,
+      initialDescription: null,
+      fullDescription: '',
+      features: [],
+      targetUsers: null,
       planApproved: false,
       designComplete: false,
-      codeGenerated: false
+      codeGenerated: false,
+      canModify: true
     };
 
     // Auto-resize textarea
@@ -582,6 +591,10 @@
         await handleDesign();
       } else if (currentStep === 'build') {
         await handleBuild();
+      } else if (currentStep === 'modify') {
+        await handleModification(message);
+      } else if (currentStep === 'review') {
+        await handleReviewChat(message);
       }
 
       // Re-enable send button
@@ -590,26 +603,125 @@
     }
 
     async function handleDiscovery(message) {
-      conversationState.description = message;
+      if (!conversationState.initialDescription) {
+        // First message - store initial description
+        conversationState.initialDescription = message;
+        conversationState.fullDescription = message;
 
+        await sleep(800);
+
+        // Detect app type and suggest features
+        const suggestions = analyzeAndSuggestFeatures(message);
+
+        if (suggestions.length > 0) {
+          addMessage('bot', `Interesting! A ${suggestions.appType || 'web application'}. I have some suggestions to make it even better:`);
+
+          await sleep(600);
+
+          const suggestionsList = suggestions.map((s, i) => `${i + 1}. ${s}`).join('<br>');
+          addMessage('bot', suggestionsList);
+
+          await sleep(800);
+        }
+
+        // Ask follow-up questions
+        discoveryQuestions++;
+        await sleep(500);
+        addMessage('bot', `To build something perfect for you, I have a few questions:<br><br>` +
+          `1. Who is your target audience?<br>` +
+          `2. Do you need any specific integrations? (maps, payments, social media, etc.)<br>` +
+          `3. What's the primary goal users should accomplish?`);
+
+      } else if (discoveryQuestions === 1) {
+        // Second round - gather more details
+        conversationState.fullDescription += '\n\nAdditional context: ' + message;
+        discoveryQuestions++;
+
+        await sleep(600);
+        addMessage('bot', 'Great context! Is there anything else important I should know before I create the plan?');
+
+        await sleep(400);
+        addMessage('bot', '(You can type "ready" to proceed to planning, or tell me more)');
+
+      } else {
+        // Final round or "ready" command
+        if (message.toLowerCase().includes('ready') || message.toLowerCase().includes('proceed') ||
+            message.toLowerCase().includes("let's go") || message.toLowerCase().includes('build')) {
+          await moveToPlanningPhase();
+        } else {
+          conversationState.fullDescription += '\n\n' + message;
+          discoveryQuestions++;
+
+          await sleep(600);
+          addMessage('bot', 'Got it! Anything else, or are you ready for me to create a detailed plan?');
+        }
+      }
+    }
+
+    function analyzeAndSuggestFeatures(description) {
+      const lower = description.toLowerCase();
+      const suggestions = [];
+      suggestions.appType = null;
+
+      // Detect app type and suggest relevant features
+      if (lower.includes('restaurant') || lower.includes('food') || lower.includes('dining')) {
+        suggestions.appType = 'restaurant finder app';
+        suggestions.push('🗺️ **Interactive Map** - Show restaurants on a map with your current location');
+        suggestions.push('⭐ **Reviews Integration** - Pull real reviews from Yelp and Google');
+        suggestions.push('📸 **Photo Gallery** - Display restaurant photos in a beautiful gallery');
+        suggestions.push('📍 **Distance Calculator** - Show how far each restaurant is from you');
+        suggestions.push('📅 **Reservation System** - Let users book tables directly');
+        suggestions.push('🔍 **Advanced Filters** - Search by cuisine, price, rating, distance');
+      } else if (lower.includes('shop') || lower.includes('ecommerce') || lower.includes('store')) {
+        suggestions.appType = 'e-commerce platform';
+        suggestions.push('💳 **Payment Processing** - Integrate Stripe for secure payments');
+        suggestions.push('🛒 **Shopping Cart** - Persistent cart with local storage');
+        suggestions.push('⭐ **Product Reviews** - Let customers leave ratings and reviews');
+        suggestions.push('📧 **Email Notifications** - Order confirmations and shipping updates');
+        suggestions.push('🔐 **User Accounts** - Save addresses and order history');
+      } else if (lower.includes('social') || lower.includes('community') || lower.includes('chat')) {
+        suggestions.appType = 'social platform';
+        suggestions.push('👤 **User Profiles** - Customizable profiles with avatars');
+        suggestions.push('💬 **Real-time Chat** - WebSocket-based messaging');
+        suggestions.push('📸 **Image Uploads** - Share photos and media');
+        suggestions.push('👍 **Likes & Comments** - Engagement features');
+        suggestions.push('🔔 **Notifications** - Real-time activity updates');
+      } else if (lower.includes('blog') || lower.includes('content') || lower.includes('article')) {
+        suggestions.appType = 'content platform';
+        suggestions.push('✍️ **Rich Text Editor** - Format posts with markdown');
+        suggestions.push('🏷️ **Tags & Categories** - Organize content');
+        suggestions.push('💬 **Comments System** - Engage with readers');
+        suggestions.push('📱 **Responsive Design** - Perfect on all devices');
+        suggestions.push('🔍 **Search Functionality** - Find content easily');
+      } else if (lower.includes('dashboard') || lower.includes('analytics') || lower.includes('data')) {
+        suggestions.appType = 'data dashboard';
+        suggestions.push('📊 **Interactive Charts** - Visualize data beautifully');
+        suggestions.push('🔄 **Real-time Updates** - Live data refreshing');
+        suggestions.push('📥 **Data Export** - Download reports as CSV/PDF');
+        suggestions.push('🎯 **Custom Filters** - Slice and dice your data');
+        suggestions.push('📧 **Automated Reports** - Scheduled email summaries');
+      }
+
+      return suggestions;
+    }
+
+    async function moveToPlanningPhase() {
       // Update progress
       updateProgress('discover', 'complete');
       updateProgress('plan', 'active');
       currentStep = 'plan';
 
-      // Simulate AI thinking
-      await sleep(1000);
-
-      addMessage('bot', `Great! Let me create a plan for your "${message}" application.`);
+      await sleep(800);
+      addMessage('bot', `Perfect! Let me analyze everything you've told me and create a comprehensive plan...`);
 
       await sleep(1500);
 
-      // Generate plan
+      // Generate plan with AI
       try {
         const response = await fetch('/api/workflow/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ description: message })
+          body: JSON.stringify({ description: conversationState.fullDescription })
         });
 
         const data = await response.json();
@@ -617,24 +729,29 @@
         if (data.success) {
           workflowId = data.workflowId;
 
-          addMessage('bot', `I've analyzed your requirements. Here's what I'll build:`, {
+          addMessage('bot', `I've created a detailed plan based on our conversation:`, {
             type: 'plan',
             content: `
               <div class="plan-card">
                 <div class="plan-title">📋 Development Plan</div>
                 <div class="plan-content">
-                  <strong>Project:</strong> ${message}
+                  <strong>Project:</strong> ${conversationState.initialDescription}
                   <br><br>
-                  <strong>Steps:</strong>
-                  <br>1. Design the architecture and technical specifications
-                  <br>2. Plan the infrastructure and deployment strategy
-                  <br>3. Generate a complete, working web application
+                  <strong>Core Features:</strong>
+                  <br>• Responsive web application (mobile & desktop)
+                  <br>• Modern, clean UI with smooth animations
+                  <br>• Full functionality based on your requirements
                   <br><br>
-                  <strong>Deliverable:</strong> A fully functional HTML/CSS/JavaScript application you can download and use immediately.
+                  <strong>Technical Stack:</strong>
+                  <br>• HTML5, CSS3, JavaScript
+                  <br>• No external dependencies - works immediately
+                  <br>• SEO-friendly and performant
+                  <br><br>
+                  <strong>Deliverable:</strong> A production-ready application you can deploy right away.
                 </div>
                 <div class="plan-actions">
-                  <button class="btn-primary" onclick="approvePlan()">✓ Looks Good!</button>
-                  <button class="btn-secondary" onclick="rejectPlan()">✗ Let's Adjust</button>
+                  <button class="btn-primary" onclick="approvePlan()">✓ Let's Build This!</button>
+                  <button class="btn-secondary" onclick="rejectPlan()">✏️ I Want Changes</button>
                 </div>
               </div>
             `
@@ -807,9 +924,18 @@
       window.open('/controlled', '_blank');
     }
 
-    function requestChanges() {
+    async function requestChanges() {
       addMessage('user', 'I\'d like to make some changes');
-      addMessage('bot', 'Of course! What would you like to change?');
+
+      await sleep(500);
+      addMessage('bot', 'No problem! I can help you refine the application. What would you like to change?');
+
+      await sleep(300);
+      addMessage('bot', 'You can describe the changes you want, and I\'ll update the code for you. Try to be specific about what you\'d like to add, remove, or modify.');
+
+      // Enable modification mode
+      conversationState.canModify = true;
+      currentStep = 'modify';
     }
 
     function startOver() {
@@ -848,6 +974,43 @@
       const stepEl = document.getElementById(`step-${step}`);
       if (stepEl) {
         stepEl.className = `progress-step ${status}`;
+      }
+    }
+
+    async function handleModification(message) {
+      await sleep(800);
+      addMessage('bot', 'I understand you want to: "' + message + '"');
+
+      await sleep(1000);
+      addMessage('bot', 'Let me regenerate the code with your requested changes...');
+
+      // In a real implementation, you would call the AI API here to modify the code
+      await sleep(2000);
+
+      addMessage('bot', '✅ I\'ve updated the application with your changes! Check the preview on the right.');
+
+      await sleep(500);
+      addMessage('bot', 'What do you think? Need any more adjustments?', {
+        type: 'action',
+        content: `
+          <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn-primary" onclick="downloadCode()">📥 Download Code</button>
+            <button class="btn-secondary" onclick="requestChanges()">✏️ More Changes</button>
+            <button class="btn-secondary" onclick="currentStep='review'">✓ Looks Perfect</button>
+          </div>
+        `
+      });
+    }
+
+    async function handleReviewChat(message) {
+      // Handle general questions and modifications after the app is complete
+      if (message.toLowerCase().includes('change') || message.toLowerCase().includes('modify') ||
+          message.toLowerCase().includes('add') || message.toLowerCase().includes('update')) {
+        currentStep = 'modify';
+        await handleModification(message);
+      } else {
+        await sleep(500);
+        addMessage('bot', 'I\'m here to help! You can ask me to make changes, download the code, or start a new project.');
       }
     }
 
