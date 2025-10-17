@@ -6,11 +6,17 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize Supabase
-const supabase = createClient(
-  process.env.SUPABASE_URL || 'https://plvwmhcjldivomlejnxz.supabase.co',
-  process.env.SUPABASE_ANON_KEY || ''
-);
+// Initialize Supabase (optional - will skip if keys not available)
+let supabase = null;
+if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+  supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY
+  );
+  console.log('[Supabase] Initialized successfully');
+} else {
+  console.log('[Supabase] Skipped - no credentials provided');
+}
 
 app.use(cors());
 app.use(express.json());
@@ -1781,6 +1787,11 @@ async function callClaude(agentType, input) {
 // Controlled workflow page
 app.get('/controlled', (req, res) => {
   res.sendFile(__dirname + '/controlled.html');
+});
+
+// Lovable-style conversational UI
+app.get('/lovable', (req, res) => {
+  res.sendFile(__dirname + '/lovable.html');
 });
 
 // Main page with working form

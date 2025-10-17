@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEV-TOOL-KIT-A2A - Build Your App</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fa;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      height: 100vh;
+      gap: 0;
+    }
+
+    /* Left Side - Progress & Chat */
+    .left-panel {
+      background: white;
+      border-right: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .header {
+      padding: 24px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: #666;
+    }
+
+    /* Progress Tracker */
+    .progress-section {
+      padding: 24px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .progress-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    .progress-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .progress-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .progress-step.pending {
+      background: #f5f7fa;
+    }
+
+    .progress-step.active {
+      background: #e3f2fd;
+      border-left: 3px solid #667eea;
+    }
+
+    .progress-step.complete {
+      background: #e8f5e9;
+      border-left: 3px solid #4caf50;
+    }
+
+    .step-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .progress-step.pending .step-icon {
+      background: #e0e0e0;
+      color: #999;
+    }
+
+    .progress-step.active .step-icon {
+      background: #667eea;
+      color: white;
+    }
+
+    .progress-step.complete .step-icon {
+      background: #4caf50;
+      color: white;
+    }
+
+    .step-info {
+      flex: 1;
+    }
+
+    .step-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .step-desc {
+      font-size: 12px;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    /* Chat Area */
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message {
+      display: flex;
+      gap: 12px;
+      animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .message-avatar.bot {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .message-avatar.user {
+      background: #e0e0e0;
+    }
+
+    .message-content {
+      flex: 1;
+    }
+
+    .message-text {
+      background: #f5f7fa;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #333;
+    }
+
+    .message.bot .message-text {
+      background: #f5f7fa;
+    }
+
+    .message.user .message-text {
+      background: #667eea;
+      color: white;
+    }
+
+    .message-time {
+      font-size: 11px;
+      color: #999;
+      margin-top: 4px;
+      padding-left: 4px;
+    }
+
+    /* Right Side - Preview */
+    .right-panel {
+      background: #1e1e1e;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-header {
+      background: #2d2d2d;
+      padding: 16px 24px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .preview-title {
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .device-selector {
+      display: flex;
+      gap: 8px;
+    }
+
+    .device-btn {
+      background: #3d3d3d;
+      color: #ccc;
+      border: 1px solid #555;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .device-btn:hover {
+      background: #4d4d4d;
+      color: white;
+    }
+
+    .device-btn.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .preview-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      overflow: auto;
+      background: #252525;
+    }
+
+    .preview-empty {
+      text-align: center;
+      color: #888;
+    }
+
+    .preview-empty-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+
+    .preview-frame-wrapper {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .preview-frame-wrapper.desktop {
+      width: 100%;
+      height: 100%;
+    }
+
+    .preview-frame-wrapper.mobile {
+      width: 375px;
+      height: 667px;
+      max-height: 90%;
+    }
+
+    .preview-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Input Area */
+    .input-area {
+      padding: 20px 24px;
+      border-top: 1px solid #e0e0e0;
+      background: white;
+    }
+
+    .input-wrapper {
+      display: flex;
+      gap: 12px;
+    }
+
+    textarea {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      min-height: 44px;
+      max-height: 120px;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #f5f7fa;
+    }
+
+    /* Plan Card */
+    .plan-card {
+      background: white;
+      border: 2px solid #667eea;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+    }
+
+    .plan-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .plan-content {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #666;
+      margin-bottom: 16px;
+    }
+
+    .plan-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* API Config Button */
+    .config-link {
+      font-size: 12px;
+      color: #667eea;
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: #f5f7fa;
+      display: inline-block;
+      margin-top: 8px;
+    }
+
+    .config-link:hover {
+      background: #e3f2fd;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Left Panel - Progress & Chat -->
+    <div class="left-panel">
+      <div class="header">
+        <h1>🚀 Build Your App</h1>
+        <p>AI-powered development assistant</p>
+      </div>
+
+      <!-- Progress Tracker -->
+      <div class="progress-section">
+        <div class="progress-title">Build Progress</div>
+        <div class="progress-steps" id="progressSteps">
+          <div class="progress-step pending" id="step-discover">
+            <div class="step-icon">1</div>
+            <div class="step-info">
+              <div class="step-name">Discovery</div>
+              <div class="step-desc">Understanding your vision</div>
+            </div>
+          </div>
+          <div class="progress-step pending" id="step-plan">
+            <div class="step-icon">2</div>
+            <div class="step-info">
+              <div class="step-name">Planning</div>
+              <div class="step-desc">Creating the blueprint</div>
+            </div>
+          </div>
+          <div class="progress-step pending" id="step-design">
+            <div class="step-icon">3</div>
+            <div class="step-info">
+              <div class="step-name">Design</div>
+              <div class="step-desc">Architecting the solution</div>
+            </div>
+          </div>
+          <div class="progress-step pending" id="step-build">
+            <div class="step-icon">4</div>
+            <div class="step-info">
+              <div class="step-name">Building</div>
+              <div class="step-desc">Writing the code</div>
+            </div>
+          </div>
+          <div class="progress-step pending" id="step-review">
+            <div class="step-icon">5</div>
+            <div class="step-info">
+              <div class="step-name">Review</div>
+              <div class="step-desc">Testing & refinement</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Area -->
+      <div class="chat-area" id="chatArea">
+        <div class="message bot">
+          <div class="message-avatar bot">🤖</div>
+          <div class="message-content">
+            <div class="message-text">
+              Hi! I'm your AI development assistant. I'll help you build your application step by step.
+              <br><br>
+              What would you like to build today?
+            </div>
+            <div class="message-time">Just now</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="input-area">
+        <div class="input-wrapper">
+          <textarea
+            id="userInput"
+            placeholder="Describe your app idea..."
+            rows="1"
+          ></textarea>
+          <button class="btn-primary" id="sendBtn" onclick="sendMessage()">
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel - Preview -->
+    <div class="right-panel">
+      <div class="preview-header">
+        <div class="preview-title">👁️ Live Preview</div>
+        <div class="device-selector">
+          <button class="device-btn active" onclick="setDevice('desktop')" id="btn-desktop">
+            🖥️ Desktop
+          </button>
+          <button class="device-btn" onclick="setDevice('mobile')" id="btn-mobile">
+            📱 Mobile
+          </button>
+        </div>
+      </div>
+      <div class="preview-container" id="previewContainer">
+        <div class="preview-empty">
+          <div class="preview-empty-icon">📱</div>
+          <p>Your app preview will appear here</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentStep = 'discover';
+    let currentDevice = 'desktop';
+    let workflowId = null;
+    let conversationState = {
+      description: null,
+      planApproved: false,
+      designComplete: false,
+      codeGenerated: false
+    };
+
+    // Auto-resize textarea
+    document.getElementById('userInput').addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+
+    // Send message on Enter (Shift+Enter for new line)
+    document.getElementById('userInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    async function sendMessage() {
+      const input = document.getElementById('userInput');
+      const message = input.value.trim();
+
+      if (!message) return;
+
+      // Clear input
+      input.value = '';
+      input.style.height = 'auto';
+
+      // Add user message to chat
+      addMessage('user', message);
+
+      // Disable send button
+      const sendBtn = document.getElementById('sendBtn');
+      sendBtn.disabled = true;
+      sendBtn.innerHTML = '<span class="loading-spinner"></span>';
+
+      // Process based on current step
+      if (currentStep === 'discover') {
+        await handleDiscovery(message);
+      } else if (currentStep === 'plan') {
+        await handlePlanApproval(message);
+      } else if (currentStep === 'design') {
+        await handleDesign();
+      } else if (currentStep === 'build') {
+        await handleBuild();
+      }
+
+      // Re-enable send button
+      sendBtn.disabled = false;
+      sendBtn.innerHTML = 'Send';
+    }
+
+    async function handleDiscovery(message) {
+      conversationState.description = message;
+
+      // Update progress
+      updateProgress('discover', 'complete');
+      updateProgress('plan', 'active');
+      currentStep = 'plan';
+
+      // Simulate AI thinking
+      await sleep(1000);
+
+      addMessage('bot', `Great! Let me create a plan for your "${message}" application.`);
+
+      await sleep(1500);
+
+      // Generate plan
+      try {
+        const response = await fetch('/api/workflow/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description: message })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          workflowId = data.workflowId;
+
+          addMessage('bot', `I've analyzed your requirements. Here's what I'll build:`, {
+            type: 'plan',
+            content: `
+              <div class="plan-card">
+                <div class="plan-title">📋 Development Plan</div>
+                <div class="plan-content">
+                  <strong>Project:</strong> ${message}
+                  <br><br>
+                  <strong>Steps:</strong>
+                  <br>1. Design the architecture and technical specifications
+                  <br>2. Plan the infrastructure and deployment strategy
+                  <br>3. Generate a complete, working web application
+                  <br><br>
+                  <strong>Deliverable:</strong> A fully functional HTML/CSS/JavaScript application you can download and use immediately.
+                </div>
+                <div class="plan-actions">
+                  <button class="btn-primary" onclick="approvePlan()">✓ Looks Good!</button>
+                  <button class="btn-secondary" onclick="rejectPlan()">✗ Let's Adjust</button>
+                </div>
+              </div>
+            `
+          });
+        }
+      } catch (error) {
+        addMessage('bot', `Sorry, I encountered an error: ${error.message}`);
+      }
+    }
+
+    async function approvePlan() {
+      conversationState.planApproved = true;
+
+      addMessage('user', 'Looks good! Let\'s proceed.');
+
+      updateProgress('plan', 'complete');
+      updateProgress('design', 'active');
+      currentStep = 'design';
+
+      await sleep(800);
+      addMessage('bot', 'Perfect! I\'ll start designing the architecture now. This will take a moment...');
+
+      // Auto-proceed to design
+      await handleDesign();
+    }
+
+    function rejectPlan() {
+      addMessage('user', 'Let\'s adjust the plan.');
+      addMessage('bot', 'No problem! What would you like to change about the plan?');
+      updateProgress('plan', 'pending');
+      currentStep = 'discover';
+    }
+
+    async function handleDesign() {
+      try {
+        const response = await fetch('/api/workflow/execute-phase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workflowId: workflowId,
+            phase: 'design'
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          conversationState.designComplete = true;
+          updateProgress('design', 'complete');
+          updateProgress('build', 'active');
+          currentStep = 'build';
+
+          await sleep(500);
+          addMessage('bot', '✅ Design phase complete! I\'ve created the technical specifications.');
+
+          await sleep(800);
+          addMessage('bot', 'Ready to build your application?', {
+            type: 'action',
+            content: `
+              <div style="margin-top: 12px;">
+                <button class="btn-primary" onclick="handleBuild()">🚀 Start Building</button>
+              </div>
+            `
+          });
+        }
+      } catch (error) {
+        addMessage('bot', `Design error: ${error.message}`);
+      }
+    }
+
+    async function handleBuild() {
+      addMessage('user', 'Yes, let\'s build it!');
+      addMessage('bot', 'Building your application now... This may take a minute.');
+
+      try {
+        // Execute infrastructure phase
+        await fetch('/api/workflow/execute-phase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workflowId: workflowId,
+            phase: 'infrastructure'
+          })
+        });
+
+        await sleep(1000);
+
+        // Execute code generation phase
+        const response = await fetch('/api/workflow/execute-phase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workflowId: workflowId,
+            phase: 'code'
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          conversationState.codeGenerated = true;
+          updateProgress('build', 'complete');
+          updateProgress('review', 'active');
+          currentStep = 'review';
+
+          // Update preview
+          updatePreview(data.result);
+
+          await sleep(500);
+          addMessage('bot', '🎉 Your application is ready! Check out the preview on the right.');
+
+          await sleep(1000);
+          addMessage('bot', 'You can download the code or request changes.', {
+            type: 'action',
+            content: `
+              <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn-primary" onclick="downloadCode()">📥 Download Code</button>
+                <button class="btn-secondary" onclick="requestChanges()">✏️ Request Changes</button>
+                <button class="btn-secondary" onclick="startOver()">🔄 Start Over</button>
+              </div>
+            `
+          });
+
+          updateProgress('review', 'complete');
+        }
+      } catch (error) {
+        addMessage('bot', `Build error: ${error.message}`);
+      }
+    }
+
+    function updatePreview(htmlCode) {
+      const container = document.getElementById('previewContainer');
+
+      // Clean the code
+      let cleanCode = htmlCode.replace(/```html\n/g, '').replace(/```\n/g, '').replace(/```/g, '');
+      const htmlMatch = cleanCode.match(/<!DOCTYPE[\s\S]*<\/html>/i);
+      if (htmlMatch) {
+        cleanCode = htmlMatch[0];
+      }
+
+      container.innerHTML = `
+        <div class="preview-frame-wrapper ${currentDevice}">
+          <iframe class="preview-frame" id="previewFrame"></iframe>
+        </div>
+      `;
+
+      const iframe = document.getElementById('previewFrame');
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+      iframeDoc.open();
+      iframeDoc.write(cleanCode);
+      iframeDoc.close();
+    }
+
+    function setDevice(device) {
+      currentDevice = device;
+      document.querySelectorAll('.device-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(`btn-${device}`).classList.add('active');
+
+      const wrapper = document.querySelector('.preview-frame-wrapper');
+      if (wrapper) {
+        wrapper.className = `preview-frame-wrapper ${device}`;
+      }
+    }
+
+    function downloadCode() {
+      addMessage('user', 'Download the code');
+      addMessage('bot', 'Preparing your download...');
+
+      // Implement download logic
+      window.open('/controlled', '_blank');
+    }
+
+    function requestChanges() {
+      addMessage('user', 'I\'d like to make some changes');
+      addMessage('bot', 'Of course! What would you like to change?');
+    }
+
+    function startOver() {
+      if (confirm('Start over? This will clear your current project.')) {
+        location.reload();
+      }
+    }
+
+    function addMessage(sender, text, options = {}) {
+      const chatArea = document.getElementById('chatArea');
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${sender}`;
+
+      const avatar = sender === 'bot' ? '🤖' : '👤';
+
+      let content = text;
+      if (options.content) {
+        content += options.content;
+      }
+
+      messageDiv.innerHTML = `
+        <div class="message-avatar ${sender}">${avatar}</div>
+        <div class="message-content">
+          <div class="message-text">${content}</div>
+          <div class="message-time">${time}</div>
+        </div>
+      `;
+
+      chatArea.appendChild(messageDiv);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function updateProgress(step, status) {
+      const stepEl = document.getElementById(`step-${step}`);
+      if (stepEl) {
+        stepEl.className = `progress-step ${status}`;
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+  </script>
+</body>
+</html>
